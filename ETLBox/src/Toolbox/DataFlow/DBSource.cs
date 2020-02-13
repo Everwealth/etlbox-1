@@ -5,10 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using TSQL;
-using TSQL.Statements;
 
 namespace ALE.ETLBox.DataFlow
 {
@@ -122,7 +119,7 @@ namespace ALE.ETLBox.DataFlow
         private void LoadTableDefinition()
         {
             if (HasTableName)
-                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(TableName, this.DbConnectionManager);
+                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(TableName, DbConnectionManager);
             else if (!HasSourceTableDefinition && !HasTableName)
                 throw new ETLBoxException("No Table definition or table name found! You must provide a table name or a table definition.");
         }
@@ -208,7 +205,22 @@ namespace ALE.ETLBox.DataFlow
                     if (_row != null)
                     {
                         var propInfo = TypeInfo.GetInfoByPropertyNameOrColumnMapping(colName);
-                        var con = colValue != null ? Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]) : colValue;
+
+                        object con = colValue;
+                        if (colValue != null)
+                        {
+                            var type = TypeInfo.UnderlyingPropType[propInfo];
+                            if (type.IsEnum)
+                            {
+                                con = Enum.ToObject(type, colValue);
+                            }
+                            else
+                            {
+                                con = Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]);
+                            }
+                        }
+
+                        //var con = colValue != null ? Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]) : colValue;
                         propInfo.SetValue(_row, con);
                     }
                 }
