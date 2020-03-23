@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -15,56 +16,40 @@ namespace ALE.ETLBox.DataFlow
     /// </summary>
     /// <example>
     /// <code>
-    /// CSVSource&lt;CSVData&gt; source = new CSVSource&lt;CSVData&gt;("Demo.csv");
+    /// CsvSource&lt;CSVData&gt; source = new CsvSource&lt;CSVData&gt;("Demo.csv");
     /// source.Configuration.Delimiter = ";";
     /// </code>
     /// </example>
-    public class CSVSource<TOutput> : DataFlowSource<TOutput>, ITask, IDataFlowSource<TOutput>
+    public class CsvSource<TOutput> : DataFlowStreamSource<TOutput>, ITask, IDataFlowSource<TOutput>
     {
         /* ITask Interface */
-        public override string TaskName => $"Read CSV data from file {FileName ?? ""}";
+        public override string TaskName => $"Read Csv data from Uri: {CurrentRequestUri ?? ""}";
 
         /* Public properties */
         public Configuration Configuration { get; set; }
         public int SkipRows { get; set; } = 0;
-        public string FileName { get; set; }
         public string[] FieldHeaders { get; private set; }
         public bool IsHeaderRead => FieldHeaders != null;
 
         /* Private stuff */
         CsvReader CsvReader { get; set; }
-        StreamReader StreamReader { get; set; }
+        TypeInfo TypeInfo { get; set; }
 
-        public CSVSource()
+        public CsvSource()
         {
             Configuration = new Configuration(CultureInfo.InvariantCulture);
-            base.InitObjects();
+            TypeInfo = new TypeInfo(typeof(TOutput));
+            ResourceType = ResourceType.File;
         }
 
-        public CSVSource(string fileName) : this()
+        public CsvSource(string uri) : this()
         {
-            FileName = fileName;
+            Uri = uri;
         }
 
-        public override void Execute()
+        protected override void InitReader()
         {
-            NLogStart();
-            Open();
-            try
-            {
-                ReadAll();
-                Buffer.Complete();
-            }
-            finally
-            {
-                Close();
-            }
-            NLogFinish();
-        }
-
-        private void Open()
-        {
-            StreamReader = new StreamReader(FileName, Configuration.Encoding ?? Encoding.UTF8, true);
+            StreamReader = new StreamReader(Uri, Configuration.Encoding ?? Encoding.UTF8, true);
             SkipFirstRows();
             CsvReader = new CsvReader(StreamReader, Configuration);
         }
@@ -75,8 +60,7 @@ namespace ALE.ETLBox.DataFlow
                 StreamReader.ReadLine();
         }
 
-
-        private void ReadAll()
+        protected override void ReadAll()
         {
             if (Configuration.HasHeaderRecord == true)
             {
@@ -122,29 +106,28 @@ namespace ALE.ETLBox.DataFlow
             }
         }
 
-        private void Close()
+        protected override void CloseReader()
         {
             CsvReader?.Dispose();
-            StreamReader?.Dispose();
         }
     }
 
     /// <summary>
     /// Reads data from a csv source. While reading the data from the file, data is also asnychronously posted into the targets.
-    /// CSVSource as a nongeneric type always return a string array as output. If you need typed output, use
-    /// the CSVSource&lt;TOutput&gt; object instead.
+    /// CsvSource as a nongeneric type uses dynamic object as output. If you need typed output, use
+    /// the CsvSource&lt;TOutput&gt; object instead.
     /// </summary>
-    /// <see cref="CSVSource{TOutput}"/>
+    /// <see cref="CsvSource{TOutput}"/>
     /// <example>
     /// <code>
-    /// CSVSource source = new CSVSource("demodata.csv");
+    /// CsvSource source = new CsvSource("demodata.csv");
     /// source.LinkTo(dest); //Link to transformation or destination
     /// source.Execute(); //Start the dataflow
     /// </code>
     /// </example>
-    public class CSVSource : CSVSource<string[]>
+    public class CsvSource : CsvSource<ExpandoObject>
     {
-        public CSVSource() : base() { }
-        public CSVSource(string fileName) : base(fileName) { }
+        public CsvSource() : base() { }
+        public CsvSource(string fileName) : base(fileName) { }
     }
 }

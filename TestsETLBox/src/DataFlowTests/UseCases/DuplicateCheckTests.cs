@@ -31,19 +31,19 @@ namespace ALE.ETLBoxTests.DataFlowTests
             public bool IsDuplicate { get; set; }
         }
 
-        private CSVSource<Poco> CreateDuplicateCSVSource(string fileName)
+        private CsvSource<Poco> CreateDuplicateCsvSource(string fileName)
         {
-            CSVSource<Poco> source = new CSVSource<Poco>(fileName);
+            CsvSource<Poco> source = new CsvSource<Poco>(fileName);
             source.Configuration.Delimiter = ";";
             source.Configuration.TrimOptions = CsvHelper.Configuration.TrimOptions.Trim;
             source.Configuration.MissingFieldFound = null;
             return source;
         }
 
-        private DBDestination<Poco> CreateDestinationTable(string tableName)
+        private DbDestination<Poco> CreateDestinationTable(string tableName)
         {
             DropTableTask.DropIfExists(Connection, tableName);
-            var dest = new DBDestination<Poco>(Connection, tableName);
+            var dest = new DbDestination<Poco>(Connection, tableName);
             TableDefinition stagingTable = new TableDefinition(tableName, new List<TableColumn>() {
                 new TableColumn("PKey", "INT", allowNulls: false, isPrimaryKey:true, isIdentity:true),
                 new TableColumn("ID", "INT", allowNulls: false),
@@ -66,7 +66,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void DuplicateCheckInRowTrans()
         {
             //Arrange
-            CSVSource<Poco> source = CreateDuplicateCSVSource("res/UseCases/DuplicateCheck.csv");
+            CsvSource<Poco> source = CreateDuplicateCsvSource("res/UseCases/DuplicateCheck.csv");
             List<int> IDs = new List<int>(); //at the end of the flow, this list will contain all IDs of your source
 
             //Act
@@ -80,7 +80,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
             });
 
             Multicast<Poco> multicast = new Multicast<Poco>();
-            DBDestination<Poco> dest = CreateDestinationTable("dbo.DuplicateCheck");
+            DbDestination<Poco> dest = CreateDestinationTable("dbo.DuplicateCheck");
             VoidDestination<Poco> trash = new VoidDestination<Poco>();
 
             source.LinkTo(rowTrans);
@@ -103,7 +103,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void DuplicateCheckWithBlockTrans()
         {
             //Arrange
-            CSVSource<Poco> source = CreateDuplicateCSVSource("res/UseCases/DuplicateCheck.csv");
+            CsvSource<Poco> source = CreateDuplicateCsvSource("res/UseCases/DuplicateCheck.csv");
             List<int> IDs = new List<int>(); //at the end of the flow, this list will contain all IDs of your source
 
             //Act
@@ -111,7 +111,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
             {
                 return inputList.GroupBy(item => item.ID).Select(y => y.First()).ToList();
             });
-            DBDestination<Poco> dest = CreateDestinationTable("dbo.DuplicateCheck");
+            DbDestination<Poco> dest = CreateDestinationTable("dbo.DuplicateCheck");
 
             source.LinkTo(blockTrans);
             blockTrans.LinkTo(dest);

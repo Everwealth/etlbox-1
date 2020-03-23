@@ -13,36 +13,22 @@ namespace ALE.ETLBox.ControlFlow
 
         /* Public Properties */
         public string Sql { get; set; }
-        public FileConnectionManager FileConnection { get; set; }
         public List<Action<object>> Actions { get; set; }
         public Action BeforeRowReadAction { get; set; }
         public Action AfterRowReadAction { get; set; }
-        //internal Action InternalBeforeRowReadAction { get; set; }
-        //internal Action InternalAfterRowReadAction { get; set; }
-        public long ReadTopX { get; set; } = long.MaxValue;
+        public long Limit { get; set; } = long.MaxValue;
         public int? RowsAffected { get; private set; }
         public bool IsOdbcConnection => DbConnectionManager.GetType().IsSubclassOf(typeof(OdbcConnectionManager));
         internal virtual string NameAsComment => CommentStart + TaskName + CommentEnd + Environment.NewLine;
         private string CommentStart => DoXMLCommentStyle ? @"<!--" : "/*";
         private string CommentEnd => DoXMLCommentStyle ? @"-->" : "*/";
         public virtual bool DoXMLCommentStyle { get; set; }
-        public bool DisableExtension { get; set; }
         public string Command
         {
             get
             {
                 if (HasSql)
                     return HasName && !IsOdbcConnection ? NameAsComment + Sql : Sql;
-                else if (HasFileConnection)
-                {
-                    if (FileConnection.FileExists)
-                        return HasName ? NameAsComment + FileConnection.ReadContent() : FileConnection.ReadContent();
-                    else
-                    {
-                        NLogger.Warn($"Sql file was not found: {FileConnection.FileName}", TaskType, "RUN", TaskHash, ControlFlow.STAGE);
-                        return $"SELECT 'File {FileConnection.FileName} not found'";
-                    }
-                }
                 else
                     throw new Exception("Empty command");
             }
@@ -52,8 +38,6 @@ namespace ALE.ETLBox.ControlFlow
         /* Internal/Private properties */
         internal bool DoSkipSql { get; private set; }
         bool HasSql => !(String.IsNullOrWhiteSpace(Sql));
-        bool HasFileConnection => FileConnection != null;
-
 
         /* Some constructors */
         public DbTask()
@@ -90,10 +74,6 @@ namespace ALE.ETLBox.ControlFlow
             Actions = actions.ToList();
         }
 
-        public DbTask(string name, FileConnectionManager fileConnection) : this(name)
-        {
-            this.FileConnection = fileConnection;
-        }
 
         /* Public methods */
         public int ExecuteNonQuery()
@@ -102,9 +82,9 @@ namespace ALE.ETLBox.ControlFlow
             try
             {
                 conn.Open();
-                QueryStart();
+                if (!DisableLogging) LoggingStart();
                 RowsAffected = DoSkipSql ? 0 : conn.ExecuteNonQuery(Command, Parameter);
-                QueryFinish(LogType.Rows);
+                if (!DisableLogging) LoggingEnd(LogType.Rows);
             }
             finally
             {
@@ -121,9 +101,9 @@ namespace ALE.ETLBox.ControlFlow
             try
             {
                 conn.Open();
-                QueryStart();
+                if (!DisableLogging) LoggingStart();
                 result = conn.ExecuteScalar(Command, Parameter);
-                QueryFinish();
+                if (!DisableLogging) LoggingEnd();
             }
             finally
             {
@@ -168,13 +148,12 @@ namespace ALE.ETLBox.ControlFlow
             try
             {
                 conn.Open();
-                QueryStart();
+                if (!DisableLogging) LoggingStart();
                 IDataReader reader = conn.ExecuteReader(Command, Parameter) as IDataReader;
-                for (int rowNr = 0; rowNr < ReadTopX; rowNr++)
+                for (int rowNr = 0; rowNr < Limit; rowNr++)
                 {
                     if (reader.Read())
                     {
-                        //InternalBeforeRowReadAction?.Invoke();
                         BeforeRowReadAction?.Invoke();
                         for (int i = 0; i < Actions?.Count; i++)
                         {
@@ -188,7 +167,6 @@ namespace ALE.ETLBox.ControlFlow
                             }
                         }
                         AfterRowReadAction?.Invoke();
-                        //InternalAfterRowReadAction?.Invoke();
                     }
                     else
                     {
@@ -196,7 +174,7 @@ namespace ALE.ETLBox.ControlFlow
                     }
                 }
                 reader.Close();
-                QueryFinish();
+                if (!DisableLogging) LoggingEnd();
             }
             finally
             {
@@ -212,12 +190,12 @@ namespace ALE.ETLBox.ControlFlow
             try
             {
                 conn.Open();
-                QueryStart(LogType.Bulk);
+                if (!DisableLogging) LoggingStart(LogType.Bulk);
                 conn.BeforeBulkInsert(tableName);
                 conn.BulkInsert(data, tableName);
                 conn.AfterBulkInsert(tableName);
                 RowsAffected = data.RecordsAffected;
-                QueryFinish(LogType.Bulk);
+                if (!DisableLogging) LoggingEnd(LogType.Bulk);
             }
             finally
             {
@@ -236,23 +214,7 @@ namespace ALE.ETLBox.ControlFlow
         }
 
 
-
-        void QueryStart(LogType logType = LogType.None)
-        {
-            if (!DisableLogging)
-                LoggingStart(logType);
-
-            if (!DisableExtension)
-                ExecuteExtension();
-        }
-
-        void QueryFinish(LogType logType = LogType.None)
-        {
-            if (!DisableLogging)
-                LoggingEnd(logType);
-        }
-
-        void LoggingStart(LogType logType)
+        void LoggingStart(LogType logType = LogType.None)
         {
             NLogger.Info(TaskName, TaskType, "START", TaskHash, ControlFlow.STAGE, ControlFlow.CurrentLoadProcess?.Id);
             if (logType == LogType.Bulk)
@@ -261,36 +223,11 @@ namespace ALE.ETLBox.ControlFlow
                 NLogger.Debug($"{Command}", TaskType, "RUN", TaskHash, ControlFlow.STAGE, ControlFlow.CurrentLoadProcess?.Id);
         }
 
-        void LoggingEnd(LogType logType)
+        void LoggingEnd(LogType logType = LogType.None)
         {
             NLogger.Info(TaskName, TaskType, "END", TaskHash, ControlFlow.STAGE, ControlFlow.CurrentLoadProcess?.Id);
             if (logType == LogType.Rows)
                 NLogger.Debug($"Rows affected: {RowsAffected ?? 0}", TaskType, "RUN", TaskHash, ControlFlow.STAGE, ControlFlow.CurrentLoadProcess?.Id);
         }
-
-        void ExecuteExtension()
-        {
-            if (ExtensionFileLoader.ExistsFolder && HasName)
-            {
-                List<ExtensionFile> extFiles = ExtensionFileLoader.GetExtensionFiles(TaskHash);
-
-                if (extFiles.Count > 0)
-                {
-                    foreach (var extFile in extFiles)
-                    {
-                        new SqlTask($"Extensions: {extFile.Name}", new FileConnectionManager(extFile.FileName))
-                        {
-                            ConnectionManager = this.ConnectionManager,
-                            DisableExtension = true
-                        }.ExecuteNonQuery();
-                    }
-                    DoSkipSql = extFiles.Any(ef => ef.HasSkipNextStatement);
-                }
-            }
-        }
-
-
     }
-
-
 }

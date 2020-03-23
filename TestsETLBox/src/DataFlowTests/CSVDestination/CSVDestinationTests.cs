@@ -17,10 +17,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVDestinationTests
+    public class CsvDestinationTests
     {
         public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
-        public CSVDestinationTests(DataFlowDatabaseFixture dbFixture)
+        public CsvDestinationTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -40,39 +40,17 @@ namespace ALE.ETLBoxTests.DataFlowTests
             //Arrange
             TwoColumnsTableFixture s2C = new TwoColumnsTableFixture("CSVDestSimple");
             s2C.InsertTestDataSet3();
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "CSVDestSimple");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(SqlConnection, "CSVDestSimple");
 
             //Act
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("./SimpleWithObject.csv");
+            CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("./SimpleWithObject.csv");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
             Assert.Equal(File.ReadAllText("./SimpleWithObject.csv"),
-                File.ReadAllText("res/CSVDestination/TwoColumnsSet3.csv"));
-        }
-
-        [Fact]
-        public void SimpleFlowWithBatchWrite()
-        {
-            //Arrange
-            TwoColumnsTableFixture s2C = new TwoColumnsTableFixture("CSVDestBatch");
-            s2C.InsertTestDataSet3();
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "CSVDestBatch");
-
-            //Act
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("./ObjectWithBatchWrite.csv")
-            {
-                BatchSize = 2
-            };
-            source.LinkTo(dest);
-            source.Execute();
-            dest.Wait();
-
-            //Assert
-            Assert.Equal(File.ReadAllText("./ObjectWithBatchWrite.csv"),
-                File.ReadAllText("res/CSVDestination/TwoColumnsSet3.csv"));
+                File.ReadAllText("res/CsvDestination/TwoColumnsSet3.csv"));
         }
     }
 }

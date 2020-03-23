@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Dynamic;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -63,7 +64,8 @@ namespace ALE.ETLBox.DataFlow
                     if (ProgressCount == 0) NLogStart();
                     try
                     {
-                        writeAction.Invoke(input);
+                        if (input != null)
+                            writeAction.Invoke(input);
                     }
                     catch (Exception e)
                     {
@@ -76,14 +78,14 @@ namespace ALE.ETLBox.DataFlow
     }
 
     /// <summary>
-    /// Define your own destination block. The non generic implementation accepts a string array as input.
+    /// Define your own destination block. The non generic implementation uses a dynamic object as input.
     /// </summary>
-    public class CustomDestination : CustomDestination<string[]>
+    public class CustomDestination : CustomDestination<ExpandoObject>
     {
         public CustomDestination() : base()
         { }
 
-        public CustomDestination(Action<string[]> writeAction) : base(writeAction)
+        public CustomDestination(Action<ExpandoObject> writeAction) : base(writeAction)
         { }
     }
 }

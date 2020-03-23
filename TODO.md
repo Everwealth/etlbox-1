@@ -1,52 +1,25 @@
 # TODO
 
-## Data Flow
+## Bugs & refactorings
 
-### DF - Known Issues
+### Future release
+- If not everything is connected to an destination when using predicates, it can be that the dataflow never finishes. Write some tests. See Github project DataflowEx for implementation how to create a predicate that always discards records not transferred.
+- BeforeBulkInsert / AfterBulkInsert in connection managers is executed before *every* bulk. This is o.k. for SqlTask.BulkInsert,
+as there is not known beforehand how many batches are coming. But in DbDestination there should be an idea how much data is coming, and there should be an ExecuteOnceBeforeBulkInsert/Cleanup calls in the ConnectionManagers (including the parameter passing between the clone method). In the ExecuteOnceBeforeBulkInsert the  server side settings could be set once before every bulk operation. Also, there are missing tests that verify that DbDestination modifies these server side settings only once and at then end end of all batches.
+- VoidDestination: [Use a NullBlock as Target](https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.dataflow.dataflowblock.nulltarget?view=netcore-3.1)
 
-- If not everything is connected to an destination when using predicates, it can be that the dataflow never finishes. Write some tests!
-- Check if DBMerge works properly if the constructors are not used. E.g. if the Connectionmanager is set via assignment, the underlying DBSource and DBDestination needs to be  updated.
-- BeforeBulkInsert / AfterBulkInsert in connection managers is executed before *every* bulk. There should be a "ExecuteOnceBeforeBulkInsert" function, where e.g. server side settings could be set once before every bulk operation
+## Update Docu
+- Aggregate
+- XmlSource/XmlDestination
+- DbMerge: DbMerge supports now delta loads, including a new attribute DeleteColumn to flag deletions. 
+- ExpandoObject is now default
+- Improving Lookup with new set of attributes to define matching and retrieving properties. Also a new Aggretion component that simplifies creating aggregates (e.g. to calculate SUM, MIN, MAX or Count or any other custom defined calculation).
+- All text files source (Csv, Json, Xml) now accept either a file path OR an URL which is loaded with a HttpClient. 
+- Excel source now skip blank lines
 
-- VoidDestination: Use a NullBlock as Target 
-https://docs.microsoft.com/en-us/dotnet/api/system.threading.tasks.dataflow.dataflowblock.nulltarget?view=netcore-3.1
+## Enhancements
 
-### DF - New features
-
-- Based on the BlockTransformation (but without storing all data in memory), there could be predefined components that do a Sum / Min / Max / Avg or other
-aggregation calculation. E.g. an Aggregation component which could be used to do such operations.
-- Every DBSource reads all the data from the source. For development purposes it would be benefical if only the first X rows are read from the source. A property 
-`public int Limit` could be introduced, so that only the first X rows are read for a DBSource/CSVSource/JsonSource/...
-- Add documentation for the new ExpandoObject/dynamic approach
-
-## Control Flow
-
-### CF - Known Issues
-
-- If a tabledefintion or a List<TableColumns> is given to the CreateTableTask, and the DataType is empty (null), then a NULLReferenceException is thrown - this probably is also true if the Name of the column (or the name of the definition) is empty. There should be tests, and the exception should be much better understandable
-
-### CF - New features
-
-- TableDefinition: Get "dynamic" class object from TableDefintion that can be used as type object for the flow - make sure this 
-does comply with the new ExpandoObject approach
+- All sources (DbSource, CsvSource, etc. )  always read all the data from the source. For development purposes it would be benefical if only the first X rows are read from the source. A property `public int Limit` could be introduced, so that only the first X rows are read for a DBSource/CSVSource/JsonSource/. This is quite easy to implement as SqlTask already has the Limit property. For Csv/Json, there should be a counter on the lines within the stream reader...
 - CreateTableTask.CreateOrAlter(): add functionality to alter a table (with migration if there is data in the table).
 - CreateTableTask: Function for adding test data into table (depending on table definition)
-
-## New feature
-
-- DataFlowBatchDestination and other destination have the code 
-
-```await TargetBlock.Completion;
-CleanUp()
-```
-
-add a `.ConfigureAwait(false)` and corresponding test, e.g by writing an async test for CSVDestination. 
-
-## v2.0.0
-
-- switch method parameters for GetTableDefinitionFromSource(string tablanme, IConnectionManager manager) - IConnectionManager is always first
-- Add documentation for ETLBox Core: add a description that ETL is needed for snowflake, and snowflake is needed for reports, and reports could be created with PowerBI
-- get rid of the ExpandoObject in the definitions and only use it internally - from the outside, only use "dynamic" as type
-- make dynamic as default type instead string[] (update docu, perhaps some tests)
-- remove Extension handling
-- remove "name" parameter from SqlTask
+- XmlDestination

@@ -1,24 +1,24 @@
 ﻿# Flat files and other sources and destinations
 
-## CSVSource
+## CsvSource
 
 A CSV source simple reads data from a CSV file. Under the hood is the 3rd party library `CSVHelper`. There are several configuration options for the Reader. 
 The default output data type of the CSVReader is a string array. You can either use a `RowTransformation` to transform it into the data type you need, or use
-the generic implementation CSVSource.
+the generic implementation CsvSource.
 
 ```C#
 //Returns string[] as output type for other components
-CSVSource source = new CSVSource("Demo.csv") {
+CsvSource source = new CsvSource("Demo.csv") {
     Delimiter = ";",
     SourceCommentRows = 2
 }
 ```
 
 ```C#
-CSVSource<CSVData> source = new CSVSource<CSVData>("Demo.csv");
+CsvSource<CSVData> source = new CsvSource<CSVData>("Demo.csv");
 ```
 
-## CSVDestination
+## CsvDestination
 
 A CSV destination will create a file containing the data in the desired CSV format. It is based on the 3rd party library `CSVHelper`.
 
@@ -38,7 +38,7 @@ E.g.
     public string Col2 { get; set; }
 }
 
-CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("./SimpleWithObject.csv");
+CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("./SimpleWithObject.csv");
 ```
 
 will create a .csv file like this
@@ -52,19 +52,61 @@ Header1,Header2
 
 ### CSV Configuration
 
-The `CSVDestination` and the `CSVSource` does have a property `Configuration` which allows you to set e.g. the delimiter for the file. 
+The `CsvDestination` and the `CsvSource` does have a property `Configuration` which allows you to set e.g. the delimiter for the file. 
 
 ```C#
-CSVSource source = new CSVSource("res/CSVSource/OneColumn.csv")
+CsvSource source = new CsvSource("res/CsvSource/OneColumn.csv")
 {
     Configuration = new CsvHelper.Configuration.Configuration() { Delimiter = ";" }
 };
 ```
 
+## Xml
+
+### XmlSource
+
+The xml source let you read data from a xml source.
+Let's assume your xml file looks like this:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Root>
+    <MySimpleRow Col1="1">
+        <Col2>Test1</Col2>
+    </MySimpleRow>
+    <MySimpleRow Col1="2">
+        <Col2>Test2</Col2>
+    </MySimpleRow>
+</Root>
+```
+
+Xml parsing is based on XmlSerializer. You can define your source and your object like this, and  make use of the default xml attribute annotations to
+influence the XmlSerializer.
+
+```C#
+[XmlRoot("MySimpleRow")]
+public class MyRow
+{
+    [XmlAttribute]
+    public int Col1 { get; set; }
+    public string Col2 { get; set; }
+}
+
+  XmlSource<MyRow> source = new XmlSource<MyRow>("source.xml", ResourceType.File);
+```
+
+### XmlDestination
+
+The xml destination will you the same XmlSerializer to deserialize the data and write them into an xml file.
+
+```C#
+XmlDestination<MyRow> dest = new XmlDestination<MyRow>("dest.xml", ResourceType.File);
+```
 
 ## ExcelSource
 
-An Excel source reads data from a xls or xlsx file. It uses the 3rd party library `ExcelDataReader`. 
+An Excel source reads data from a xls or xlsx file. 
+[It uses the 3rd party library `ExcelDataReader`](https://github.com/ExcelDataReader/ExcelDataReader). 
 By default the excel reader will try to read all data in the file. You can specify a sheet name and a range 
 to restrict this behavior. Additionally, you have to use the Attribute `ExcelColumn` to define the column index
 for each property. The first column would be 0, the 2nd column 1, ...
@@ -85,7 +127,11 @@ ExcelSource<ExcelData> source = new ExcelSource<ExcelData>("src/DataFlow/ExcelDa
     SheetName = "Sheet2"
 };
 ```
+The ExcelRange must not define the full range. It is sufficient if you just set the starting coordinates. The end of the
+data can be automatically determined from the underlying ExcelDataReader.
 
+The ExcelSource has a property `IgnoreBlankRows`. This can be set to true, and all rows which cells are completely empty
+are ignored when reading data from your source. 
 
 ## Other Sources and Destinations
 
@@ -143,7 +189,7 @@ Example code:
 ```C#
  TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("MemoryDestination");
 MemorySource<MySimpleRow> source = new MemorySource<MySimpleRow>();
-DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(SqlConnection, "MemoryDestination");
+DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(SqlConnection, "MemoryDestination");
        
 source.Data = new List<MySimpleRow>()
 {
@@ -165,7 +211,7 @@ Data can be read from this collection as soon as it arrives.
 Example:
 
 ```C#
-DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "MemoryDestinationSource");
+DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(SqlConnection, "MemoryDestinationSource");
 MemoryDestination<MySimpleRow> dest = new MemoryDestination<MySimpleRow>();
 
 source.LinkTo(dest);

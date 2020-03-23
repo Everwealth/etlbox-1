@@ -17,10 +17,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVDestinationNullHandlingTests
+    public class CsvDestinationNullHandlingTests
     {
         public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
-        public CSVDestinationNullHandlingTests(DataFlowDatabaseFixture dbFixture)
+        public CsvDestinationNullHandlingTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -48,21 +48,21 @@ namespace ALE.ETLBoxTests.DataFlowTests
             };
 
             //Act
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("./IgnoreNullValues.csv");
+            CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("./IgnoreNullValues.csv");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
             Assert.Equal(File.ReadAllText("./IgnoreNullValues.csv"),
-                File.ReadAllText("res/CSVDestination/TwoColumns.csv"));
+                File.ReadAllText("res/CsvDestination/TwoColumns.csv"));
         }
 
         [Fact]
         public void IgnoreWithStringArray()
         {
             //Arrange
-            MemorySource source = new MemorySource();
+            MemorySource<string[]> source = new MemorySource<string[]>();
             source.Data = new List<string[]>()
             {
                 null,
@@ -74,14 +74,14 @@ namespace ALE.ETLBoxTests.DataFlowTests
             };
 
             //Act
-            CSVDestination dest = new CSVDestination("./IgnoreNullValuesStringArray.csv");
+            CsvDestination<string[]> dest = new CsvDestination<string[]>("./IgnoreNullValuesStringArray.csv");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
             Assert.Equal(File.ReadAllText("./IgnoreNullValuesStringArray.csv"),
-                File.ReadAllText("res/CSVDestination/TwoColumnsNoHeader.csv"));
+                File.ReadAllText("res/CsvDestination/TwoColumnsNoHeader.csv"));
         }
 
 

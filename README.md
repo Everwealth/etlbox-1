@@ -1,26 +1,22 @@
-# <span><img src="https://github.com/roadrunnerlenny/etlbox/raw/master/docs/images/logo_orig_32x32.png" alt="ETLBox logo" height="32" /> Welcome to ETLBox</span>
+# <span><img src="https://github.com/roadrunnerlenny/etlbox/raw/master/docs/images/logo_orig_32x32.png" alt="ETLBox logo" height="32" /> ETLBox</span>
 
-It's all in the box! Run all your ETL or ELT jobs with this .NET class library. Create your own dataflow, send your data from any source to any target and transform it on-the-fly. Data can be read from or written into various sources, e.g. Flat Files, Webservices or Databases. ETLBox currently supports: SqlServer, SQLite, MySql, Postgres, CSV, Json, Excel (and limited support for Access and SSAS). Furthermore, ETLBox offers control flow tasks that wrap Sql in easy-to-use objects and offers an enhanced logging functionality. 
+A lightweight ETL (extract, transform, load) library and data integration toolbox for .NET. Source and destination components let you read and write data from the most common databases and file types. Transformations allow you to you harmonize, filter, aggregate, validate and clean your data.
+
+Create your own tailor-made data flow with your .NET language of choice. ETLBox is written in C# and offers full support for .NET Core. 
 
 <div class="hideOnWebsite">
 
 ## ETLBox.net
 
-For a full documenetation, please visit the project homepage: [etlbox.net](https://etlbox.net) contains all the information you need about ETLBox. There is a whole set of [introductional articles](https://etlbox.net/articles/getting_started.html), a lot of examples how to create data flows and a complete API documentation.
-
-**See the video**
-
-Watch a short video that introduces you into the basic concepts of ETLBox and how to create your own ETL process. [See the video on Youtube!](https://www.youtube.com/watch?v=CsWZuRpl6PA)
+[For full documentation visit the project homepage: etlbox.net](https://etlbox.net). You will find a whole set of introductional articles, lots of examples and a complete API documentation.
 
 </div>
 
 ## Why ETLBox
 
-ETLBox is a comprehensive C# class library that is able to manage your whole ETL or ELT.  You can use it to create your own dataflow pipeline programmatically, where data is send from a source to a target and transformed on its way. Or you just can use it to manage your database using some easy-to-use and easy-to-understand .NET objects. It also offers extended logging capabilites that allow you to monitor and anlayze your ETL job runs.
+ETLBox is a comprehensive C# class library that is able to manage your whole [ETL](https://en.wikipedia.org/wiki/Extract,_transform,_load) or [ELT](https://en.wikipedia.org/wiki/Extract,_load,_transform).  You can use it to create your own dataflow pipelines programmatically in .NET, e.g. with C#. Besides a big set of dataflow components it comes which some control flow task that let you easily manage your database or simple execute Sql code without any boilerplate code. It also offers extended logging capabilites based on NLog to monitor and anlayze your ETL job runs.
 
-Perhaps you are looking for an alternative to Sql Server Integrations Services (SSIS). Or you are searching for a framework to define and run ETL jobs with C# code. The goal of ETLBox is to provide an easy-to-use but still powerful library with which you can create complex ETL routines and sophisticated data flows.
-
-### Advantages of using ETLBox
+ETLBox is a fully functional alternative to other ETL tools like Sql Server Integrations Services (SSIS). Creating your ETL processes programatically has some advantages: 
 
 **Build ETL in .NET**: Code your ETL with your favorite .NET language fitting your team’s skills and that is coming with a mature toolset.
 
@@ -34,84 +30,98 @@ Perhaps you are looking for an alternative to Sql Server Integrations Services (
 
 **Data integration**: While supporting different databases, flat files and web services, you can use ETLBox as a foundation for your custom made Data Integregation platform.
 
-### Out-of-the-box supported sources and destinations
+**Made for big data**: ETLBox relies on [Microsoft's TPL.Dataflow library](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/dataflow-task-parallel-library) and was designed to work with big amounts of data.
 
-The following table shows which types of sources and destination are supported out-of-the box with the current version of ETLBox.
+## Data Flow and Control Flow
 
-**Please note: You can *always* integrate any other source or destination not listed here by using a `CustomSource` or `CustomDestination` - though it is not supported "out-of-the-box".**
-
-Source or Destination type|Supported by ETLBox|
---------------------------|--------------------
-Sql Server|Full support
-Postgres|Full support
-SQLite|Full support
-MySql|Full support
-CSV|Full support
-Json|Full support
-Microsoft Access|Full support
-Excel|Supported as Source
-SSAS|Only XMLA statements
-Oracle|Currently not supported
-
-## ETLBox capabilities
-
-ETLBox is split into two main components: Data Flow and Control Flow Tasks. Both components will provide customizable logging functionalities.
+ETLBox is split into two main components: Data Flow and Control Flow Tasks. The Data Flow part offers the core ETL components. The tasks in the Control Flow allow you to manage your databases with a simple syntax. Both components come with customizable logging functionalities.
 
 ### Data Flow overview
 
-Dataflow tasks gives you the ability to create your own pipeline where you can send your data through. Dataflows consists of one or more source element (like CSV files or data derived from a table), some transformations and optionally one or more target. To create your own data flow , you need to accomplish three steps:
+ETLBox comes with a set of Data Flow component to construct your own ETL pipeline . You can connect with different sources (e.g. a Csv file), add some transformations to manipulate that data on-the-fly (e.g. calculating a sum or combining two columns) and then store the changed data in a connected destination (e.g. a database table). 
 
-- First you define your dataflow components
-- You link these components together (each source has an output, each transformation at least one input and one output and each destination has an input)
-- After the linking you just tell your source to start reading the data.
+To create your own data flow , you basically follow three steps:
 
-The source will start reading and post its data into the components connected to its output. As soon as a connected component retrieves any data in its input, the component will start with processing the data and then send it further down the line to its connected components. The dataflow will finish when all data from the source(s) are read and received from the destinations.
+- First you define your dataflow components (sources, optionally transformations and destinations)
+- link these components together
+- tell your source to start reading the data and wait for the destination to finish
 
-Of course, all data is processed asynchronously by the components. Each compoment has its own set of buffers, so while the source is still reading data, the transformations  can already process it and the destinations can start writing the processed information into their target.
+Now the source will start reading and post its data into the components connected to its output. As soon as a connected component retrieves any data in its input, the component will start with processing the data and then send it further down the line to its connected components. The dataflow will finish when all data from the source(s) are read, processed by the transformations and received in the destination(s).
 
-There are a lot of pre-defined components in ETLBox available. The `DBSource` can connect to a SqlServer, SQLite, MySql or Postgres table. There are transformation to modify either each record one-by-one or in whole. You can split or join different sources, and using the `CustomSource` and `CustomDestination` you can even connect to any target or source you want.
+Transformations are not always needed - you can directly connect a source to a destination. Normally, each source has one output, each destination one input and each transformation at least one input and one or more outputs. 
 
-#### Data Flow quick example
+Of course, all data is processed asynchronously by the components. Each compoment has its own set of buffers, so while the source is still reading data, the transformations  can already process it and the destinations can start writing the processed information into their target. So in an optimal flow only the current row needed for processing is stored in memory. Depending on the processing speed of your components, the buffer of each component can store additional rows to optimize throughput.
 
-It's easy to create your own data flow pipeline. This example data flow will transfer data from a MySql database into a Sql Server database and transform the records on the fly.
 
-Just create a source, some transformation and a destination:
+#### Data Flow example
+
+It's easy to create your own data flow pipeline. This example data flow will read data from a MySql database, modify a value and then store the modified data in a Sql Server table and a csv file, depending on a filter expression.
+
+Step 1 is to create a source, the transformations and destinations:
 
 ```C#
 var sourceCon = new MySqlConnectionManager("Server=10.37.128.2;Database=ETLBox_ControlFlow;Uid=etlbox;Pwd=etlboxpassword;");
 var destCon = new SqlConnectionManager("Data Source=.;Integrated Security=SSPI;Initial Catalog=ETLBox;");
 
-DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(sourceCon, "SourceTable");
-RowTransformation<MySimpleRow, MySimpleRow> trans = new RowTransformation<MySimpleRow, MySimpleRow>(
-    myRow => {  
-        myRow.Value += 1;
-        return myRow;
+DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(sourceCon, "SourceTable");
+RowTransformation<MySimpleRow, MySimpleRow> rowTrans = new RowTransformation<MySimpleRow, MySimpleRow>(
+    row => {  
+        row.Value += 1;
+        return row;
     });
-DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(destCon, "DestinationTable");
+Multicast<MySimpleRow> multicast = new Multicast<MySimpleRow>();
+DbDestination<MySimpleRow> sqlDest = new DbDestination<MySimpleRow>(destCon, "DestinationTable");
+CsvDestination<MySimpleRow> csvDest = new CsvDestination<MySimpleRow>("example.csv");
 ```
 
-Now link these elements together.
+Now we link these elements together.
 
 ```C#
 source.LinkTo(trans);
-trans.LinkTo(dest);
+rowTrans.LinkTo(multicast);
+multicast.LinkTo(sqlDest, row => row.FilterValue > 0);
+multicast.LinkTo(csvDest, row => row.FilterValue < 0);
 ```
 
-Finally, start the dataflow at the source and wait for your destination to rececive all data (and the completion message from the source).
+Finally, start the dataflow at the source and wait for the destinations to rececive all data (and the completion message from the source).
 
 ```C#
 source.Execute();
-dest.Wait();
+sqlDest.Wait();
+csvDest.Wait();
 ```
 
-#### Data Flow components
+### Data integration
 
-There are a lot of data flow components that you can choose from to create a data flow that suits all your needs. 
+The heart of an ETL framework is it's ability to integrate with other systems. 
+The following table shows which types of sources and destination are supported out-of-the box with the current version of ETLBox.
+**You can *always* integrate any other system not listed here by using a `CustomSource` or `CustomDestination` - though you have to write the integration code yourself.**
 
-You can choose between different sources and destination components. `DBSource` and `DBDestination` will connect to the most used databases (e.g. Sql Server, Postgres, MySql, SQLite). `CSVSource`, `CSVDestination` give you support for flat files - [based on CSVHelper](https://joshclose.github.io/CsvHelper/). `ExcelSource` allows you to read data from an excel sheet. `JsonSource` and `JsonDestination` let you read and write json from files or web service request. `MemorySource`, `MemoryDestinatiation` as well as `CustomSource` and `CustomDestination` will give you a lot flexibility to read or write  data directly from memory or to create your own custom made source or destination component.
+Source or Destination|Support for|Limitations|
+---------------------|-----------|------------
+Databases|Sql Server, Postgres, SQLite, MySql|Full support
+Flat files|Csv, Json, Xml|Full support
+Office|Microsoft Access, Excel|Full support for Access, Excel only as source
+Cube|Sql Server Analysis Service|Only XMLA statements
+Memory|.NET IEnumerable & Collections|Full support
+Cloud Services|Tested with Azure|Full support
+Any other|integration with custom written code|No limitations
 
-Once your data goes throug your data flow, it will be processed in-memory (either row-by-row or in batches), and there a lot of transformations you can choose from to transform your data. On a row-by-row basis, you can use the `RowTransformation` to modify each record with your custom written code. Data can be split within the flow by using a `Multicast` or joined with a `Mergejoin`. There is `Lookup` component to enrich your data with your existing master data.  You can sort your data using the `Sort`. 
-For operations that need to access your incoming data in whole there is the `BlockTransformation`.
+You can choose between different sources and destination components. `DbSource` and `DbDestination` will connect to the most used databases (e.g. Sql Server, Postgres, MySql, SQLite). `CsvSource`, `CsvDestination` give you support for flat files - [based on CSVHelper](https://joshclose.github.io/CsvHelper/). `ExcelSource` allows you to read data from an excel sheet. `JsonSource`, `JsonDestination`, `XmlSource` and `XmlDestination` let you read and write json from files or web service request. `MemorySource`, `MemoryDestinatiation` as well as `CustomSource` and `CustomDestination` will give you a lot flexibility to read or write  data directly from memory or to create your own custom made source or destination component.
+
+### Transformations
+
+ETLBox has 3 type of transformations: Non-blocking, partially blocking and blocking transformations. Non-blocking transformations will
+only store the row that is currently processed in memory (plus some more in the buffer to optimize throughput and performance). Partially blocking transformations will load some data in the memory before they process data row-by-row. Blocking transformations will wait until all data has arrived at the component before it starts processing all records subsequently. 
+
+The following table is an overview of the most common transformations in ETLBox:  
+
+Non-blocking|Partially blocking|Blocking|
+------------|------------------|---------
+RowTransformation|LookupTransformation|BlockTransformation
+Aggregation|CrossJoin|Sort
+MergeJoin||
+Multicast||
 
 #### Designed for big data
 
@@ -119,11 +129,9 @@ ETLBox was designed for performance and is able to deal with big amounts of data
 
 ### Control Flow - overview
 
-Control Flow Tasks gives you control over your database: They allow you to create or delete databases, tables, procedures, schemas or other objects in your database. With these tasks you also can truncate your tables, count rows or execute *any* sql you like. Anything you can script in sql can be done here - but with only one line of easy-to-read C# code. This improves the readability of your code a lot, and gives you more time to focus on your business logic. But Control Flow tasks are not restricted to databases only: e.g. you can run an XMLA on your Sql Server Analysis Service.
+Control Flow Tasks gives you control over your database: They allow you to create or delete databases, tables, procedures, schemas or other objects in your database. With these tasks you also can truncate your tables, count rows or execute *any* sql you like. Anything you can script in sql can be done here - but with only one line of easy-to-read C# code. This improves the readability of your code a lot, and gives you more time to focus on your business logic.
 
-#### Control Flow quick example
-
-It is now very easy to execute some Sql on the Database, without writing the whole "boilerplate" code by ADO.NET.
+Code tells - here is some example code, without writing the whole "boilerplate" code by ADO.NET.
 
 ```C#
 var conn = new SqlConnectionManager("Server=10.37.128.2;Database=ETLBox_ControlFlow;Uid=etlbox;Pwd=etlboxpassword;");
@@ -131,7 +139,7 @@ var conn = new SqlConnectionManager("Server=10.37.128.2;Database=ETLBox_ControlF
 SqlTask.ExecuteNonQuery(conn, "Do some sql",$@"EXEC myProc");
 //Count rows
 int count = RowCountTask.Count(conn, "demo.table1").Value;
-//Create a table
+//Create a table (works on all databases)
 CreateTableTask.Create(conn, "Table1", new List<TableColumn>() {
     new TableColumn(name:"key",dataType:"INT",allowNulls:false,isPrimaryKey:true, isIdentity:true),
     new TableColumn(name:"value", dataType:"NVARCHAR(100)",allowNulls:true)
@@ -146,11 +154,11 @@ By default, ETLBox uses and extends [NLog](https://nlog-project.org). ETLBox alr
 
 You can use ETLBox within any .NET or .NET core project that supports .NET Standard 2.0. (Basically all latest versions of .NET)
 
-### Variant 1: Nuget
+**Variant 1:** Nuget
 
 [ETLBox is available on nuget](https://www.nuget.org/packages/ETLBox). Just add the package to your project via your nuget package manager.
 
-### Variant 2: Download the sources
+**Variant 2:** Download the sources
 
 Clone the repository:
 

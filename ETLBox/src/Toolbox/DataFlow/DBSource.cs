@@ -19,12 +19,12 @@ namespace ALE.ETLBox.DataFlow
     /// <typeparam name="TOutput">Type of data output.</typeparam>
     /// <example>
     /// <code>
-    /// DBSource&lt;MyRow&gt; source = new DBSource&lt;MyRow&gt;("dbo.table");
+    /// DbSource&lt;MyRow&gt; source = new DbSource&lt;MyRow&gt;("dbo.table");
     /// source.LinkTo(dest); //Transformation or Destination
     /// source.Execute(); //Start the data flow
     /// </code>
     /// </example>
-    public class DBSource<TOutput> : DataFlowSource<TOutput>, ITask, IDataFlowSource<TOutput>
+    public class DbSource<TOutput> : DataFlowSource<TOutput>, ITask, IDataFlowSource<TOutput>
     {
         /* ITask Interface */
         public override string TaskName => $"Read data from {SourceDescription}";
@@ -56,20 +56,19 @@ namespace ALE.ETLBox.DataFlow
         {
             get
             {
-                if (HasColumnNames)
+                if (ColumnNames?.Count > 0)
                     return ColumnNames;
                 else if (HasSourceTableDefinition)
                     return SourceTableDefinition?.Columns?.Select(col => col.Name).ToList();
                 else
-                    return SqlParser.ParseColumnNames(QB != string.Empty ? SqlForRead.Replace(QB, "").Replace(QE, "") : SqlForRead);
+                    return ParseColumnNamesFromQuery();
             }
         }
 
         bool HasSourceTableDefinition => SourceTableDefinition != null;
-        bool HasColumnNames => ColumnNames != null && ColumnNames?.Count > 0;
         bool HasTableName => !String.IsNullOrWhiteSpace(TableName);
         bool HasSql => !String.IsNullOrWhiteSpace(Sql);
-
+        DBTypeInfo TypeInfo { get; set; }
         string SourceDescription
         {
             get
@@ -83,24 +82,33 @@ namespace ALE.ETLBox.DataFlow
             }
         }
 
-        public DBSource()
+        public DbSource()
         {
-            base.InitObjects();
+            TypeInfo = new DBTypeInfo(typeof(TOutput));
         }
 
-        public DBSource(string tableName) : this()
+        public DbSource(string tableName) : this()
         {
             TableName = tableName;
         }
 
-        public DBSource(IConnectionManager connectionManager) : this()
+        public DbSource(IConnectionManager connectionManager) : this()
         {
             ConnectionManager = connectionManager;
         }
 
-        public DBSource(IConnectionManager connectionManager, string tableName) : this(tableName)
+        public DbSource(IConnectionManager connectionManager, string tableName) : this(tableName)
         {
             ConnectionManager = connectionManager;
+        }
+
+        private List<string> ParseColumnNamesFromQuery()
+        {
+            var result = SqlParser.ParseColumnNames(QB != string.Empty ? SqlForRead.Replace(QB, "").Replace(QE, "") : SqlForRead);
+            if (TypeInfo.IsArray && result?.Count == 0) throw new ETLBoxException("Could not parse column names from Sql Query! Please pass a valid TableDefinition to the " +
+                " property SourceTableDefinition with at least a name for each column that you want to use in the source."
+                );
+            return result;
         }
 
         public override void Execute()
@@ -122,7 +130,7 @@ namespace ALE.ETLBox.DataFlow
         private void LoadTableDefinition()
         {
             if (HasTableName)
-                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(TableName, this.DbConnectionManager);
+                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(this.DbConnectionManager, TableName);
             else if (!HasSourceTableDefinition && !HasTableName)
                 throw new ETLBoxException("No Table definition or table name found! You must provide a table name or a table definition.");
         }
@@ -132,7 +140,6 @@ namespace ALE.ETLBox.DataFlow
             var sqlT = new SqlTask(this, sql)
             {
                 DisableLogging = true,
-                DisableExtension = true,
             };
             sqlT.Actions = new List<Action<object>>();
             return sqlT;
@@ -209,7 +216,7 @@ namespace ALE.ETLBox.DataFlow
                     {
                         var propInfo = TypeInfo.GetInfoByPropertyNameOrColumnMapping(colName);
                         var con = colValue != null ? Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]) : colValue;
-                        propInfo.SetValue(_row, con);
+                        propInfo.TrySetValue(_row, con);
                     }
                 }
                 catch (Exception e)
@@ -252,23 +259,21 @@ namespace ALE.ETLBox.DataFlow
 
     /// <summary>
     /// A database source defines either a table or sql query that returns data from a database. While reading the result set or the table, data is asnychronously posted
-    /// into the targets. The non generic version of the DBSource creates a string array that contains the data.
+    /// into the targets. The non generic version of the DbSource uses a dynamic object that contains the data.
     /// </summary>
-    /// <see cref="DBSource{TOutput}"/>
+    /// <see cref="DbSource{TOutput}"/>
     /// <example>
     /// <code>
-    /// //Non generic DBSource works with string[] as output
-    /// //use DBSource&lt;TOutput&gt; for generic usage!
-    /// DBSource source = new DBSource("dbo.table");
+    /// DbSource source = new DbSource("dbo.table");
     /// source.LinkTo(dest); //Transformation or Destination
     /// source.Execute(); //Start the data flow
     /// </code>
     /// </example>
-    public class DBSource : DBSource<string[]>
+    public class DbSource : DbSource<ExpandoObject>
     {
-        public DBSource() : base() { }
-        public DBSource(string tableName) : base(tableName) { }
-        public DBSource(IConnectionManager connectionManager) : base(connectionManager) { }
-        public DBSource(IConnectionManager connectionManager, string tableName) : base(connectionManager, tableName) { }
+        public DbSource() : base() { }
+        public DbSource(string tableName) : base(tableName) { }
+        public DbSource(IConnectionManager connectionManager) : base(connectionManager) { }
+        public DbSource(IConnectionManager connectionManager, string tableName) : base(connectionManager, tableName) { }
     }
 }

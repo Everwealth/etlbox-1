@@ -2,62 +2,57 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
+using System.Threading.Tasks.Dataflow;
 
 namespace ALE.ETLBox.DataFlow
 {
     /// <summary>
-    /// A destination in memory - it will store all you data in a list. Inserts are done in batches.
+    /// A destination in memory - it will store all you data in a list.
     /// </summary>
     /// <see cref="MemoryDestination"/>
     /// <typeparam name="TInput">Type of data input.</typeparam>
-    public class MemoryDestination<TInput> : DataFlowBatchDestination<TInput>, ITask, IDataFlowDestination<TInput>
+    public class MemoryDestination<TInput> : DataFlowDestination<TInput>, ITask, IDataFlowDestination<TInput>
     {
         /* ITask Interface */
         public override string TaskName => $"Write data into memory";
 
-        internal const int DEFAULT_BATCH_SIZE = 1000;
-        public BlockingCollection<TInput> Data { get; set; }
+        public BlockingCollection<TInput> Data { get; set; } = new BlockingCollection<TInput>();
 
         public MemoryDestination()
         {
-            BatchSize = DEFAULT_BATCH_SIZE;
+            TargetAction = new ActionBlock<TInput>(WriteRecord);
+            SetCompletionTask();
         }
 
-        protected override void InitObjects(int batchSize)
+        internal MemoryDestination(ITask callingTask) : this()
         {
-            base.InitObjects(batchSize);
+            CopyTaskProperties(callingTask);
         }
 
-        protected override void WriteBatch(ref TInput[] data)
+        protected void WriteRecord(TInput data)
         {
-            if (Data == null) InitMemoryCollection();
-            base.WriteBatch(ref data);
-            foreach (TInput record in data) {
-                if (record == null) continue;
-                Data.Add(record);
-            }
-            LogProgressBatch(data.Length);
+            if (Data == null) Data = new BlockingCollection<TInput>();
+            if (data == null) return;
+            Data.Add(data);
+            LogProgress();
         }
 
-        private void InitMemoryCollection()
-        {
-            Data = new BlockingCollection<TInput>();
-            this.CloseStreamsAction = CloseStream;
-        }
-
-        private void CloseStream()
+        protected override void CleanUp()
         {
             Data?.CompleteAdding();
+            OnCompletion?.Invoke();
+            NLogFinish();
         }
     }
 
     /// <summary>
-    /// A destination in memory - it will store all you data in a list. Inserts are done in batches.
-    /// The MemoryDestination access a string array as input type. If you need other data types, use the generic CSVDestination instead.
+    /// A destination in memory - it will store all you data in a list.
+    /// The MemoryDestination uses a dynamic object as input type. If you need other data types, use the generic CsvDestination instead.
     /// </summary>
     /// <see cref="MemoryDestination{TInput}"/>
-    public class MemoryDestination : MemoryDestination<string[]>
+    public class MemoryDestination : MemoryDestination<ExpandoObject>
     {
         public MemoryDestination() : base() { }
     }

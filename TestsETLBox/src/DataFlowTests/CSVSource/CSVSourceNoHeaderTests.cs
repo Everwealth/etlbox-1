@@ -16,10 +16,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVSourceNoHeaderTests
+    public class CsvSourceNoHeaderTests
     {
         public SqlConnectionManager Connection => Config.SqlConnection.ConnectionManager("DataFlow");
-        public CSVSourceNoHeaderTests(DataFlowDatabaseFixture dbFixture)
+        public CsvSourceNoHeaderTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -32,14 +32,14 @@ namespace ALE.ETLBoxTests.DataFlowTests
         }
 
         [Fact]
-        public void CSVSourceNoHeader()
+        public void CsvSourceNoHeader()
         {
             //Arrange
-            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("CSVSourceNoHeader");
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(Connection, "CSVSourceNoHeader");
+            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("CsvSourceNoHeader");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(Connection, "CsvSourceNoHeader");
 
             //Act
-            CSVSource<MySimpleRow> source = new CSVSource<MySimpleRow>("res/CSVSource/TwoColumnsNoHeader.csv");
+            CsvSource<MySimpleRow> source = new CsvSource<MySimpleRow>("res/CsvSource/TwoColumnsNoHeader.csv");
             source.Configuration.HasHeaderRecord = false;
             source.LinkTo(dest);
             source.Execute();

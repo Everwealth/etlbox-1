@@ -1,5 +1,6 @@
 ﻿using ALE.ETLBox.ConnectionManager;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 
 namespace ALE.ETLBox.Helper
@@ -25,11 +26,11 @@ namespace ALE.ETLBox.Helper
 
         }
 
-        public static ConnectionDetails<ConnectionString, SqlConnectionManager> SqlConnection
-        { get; set; } = new ConnectionDetails<ConnectionString, SqlConnectionManager>("SqlConnectionString");
+        public static ConnectionDetails<SqlConnectionString, SqlConnectionManager> SqlConnection
+        { get; set; } = new ConnectionDetails<SqlConnectionString, SqlConnectionManager>("SqlConnectionString");
 
-        public static ConnectionDetails<ConnectionString, AdomdConnectionManager> SSASConnection
-        { get; set; } = new ConnectionDetails<ConnectionString, AdomdConnectionManager>("SSASConnectionString");
+        public static ConnectionDetails<SqlConnectionString, AdomdConnectionManager> SSASConnection
+        { get; set; } = new ConnectionDetails<SqlConnectionString, AdomdConnectionManager>("SSASConnectionString");
 
         public static ConnectionDetails<SQLiteConnectionString, SQLiteConnectionManager> SQLiteConnection
         { get; set; } = new ConnectionDetails<SQLiteConnectionString, SQLiteConnectionManager>("SQLiteConnectionString");
@@ -45,8 +46,8 @@ namespace ALE.ETLBox.Helper
 
         public static ConnectionDetails<OdbcConnectionString, SqlOdbcConnectionManager> SqlOdbcConnection
         { get; set; } = new ConnectionDetails<OdbcConnectionString, SqlOdbcConnectionManager>("SqlOdbcConnectionString");
-        public static ConnectionDetails<ConnectionString, SqlConnectionManager> AzureSqlConnection
-        { get; set; } = new ConnectionDetails<ConnectionString, SqlConnectionManager>("AzureSqlConnectionString");
+        public static ConnectionDetails<SqlConnectionString, SqlConnectionManager> AzureSqlConnection
+        { get; set; } = new ConnectionDetails<SqlConnectionString, SqlConnectionManager>("AzureSqlConnectionString");
 
 
         public static IEnumerable<object[]> AllSqlConnections(string section) => new[] {
@@ -91,7 +92,11 @@ namespace ALE.ETLBox.Helper
             get
             {
                 if (_defaultConfigFile == null)
-                    Load("default.config.json");
+                {
+                    var envvar = Environment.GetEnvironmentVariable("ETLBoxConfig");
+                    var path = string.IsNullOrWhiteSpace(envvar) ? $"default.config.json" : envvar;
+                    Load(path);
+                }
                 return _defaultConfigFile;
             }
             set

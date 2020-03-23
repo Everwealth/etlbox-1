@@ -14,7 +14,7 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class RowTransformationTests 
+    public class RowTransformationTests
     {
         public SqlConnectionManager Connection => Config.SqlConnection.ConnectionManager("DataFlow");
         public RowTransformationTests(DataFlowDatabaseFixture dbFixture)
@@ -32,7 +32,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         {
             //Arrange
             TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("DestinationRowTransformation");
-            CSVSource source = new CSVSource("res/RowTransformation/TwoColumns.csv");
+            CsvSource<string[]> source = new CsvSource<string[]>("res/RowTransformation/TwoColumns.csv");
 
             //Act
             RowTransformation<string[], MySimpleRow> trans = new RowTransformation<string[], MySimpleRow>(
@@ -44,7 +44,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
                         Col2 = csvdata[1]
                     };
                 });
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(Connection, "DestinationRowTransformation");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(Connection, "DestinationRowTransformation");
             source.LinkTo(trans);
             trans.LinkTo(dest);
             source.Execute();
@@ -59,7 +59,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         {
             //Arrange
             TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("DestinationRowTransformation");
-            CSVSource<MySimpleRow> source = new CSVSource<MySimpleRow>("res/RowTransformation/TwoColumnsIdMinus1.csv");
+            CsvSource<MySimpleRow> source = new CsvSource<MySimpleRow>("res/RowTransformation/TwoColumnsIdMinus1.csv");
 
             //Act
             int IdOffset = 0;
@@ -72,7 +72,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
                 },
                 () => IdOffset += 1
             );
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(Connection, "DestinationRowTransformation");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(Connection, "DestinationRowTransformation");
             source.LinkTo(trans);
             trans.LinkTo(dest);
             source.Execute();

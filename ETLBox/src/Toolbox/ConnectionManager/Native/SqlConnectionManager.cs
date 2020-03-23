@@ -17,9 +17,9 @@ namespace ALE.ETLBox.ConnectionManager
 
         public SqlConnectionManager() : base() { }
 
-        public SqlConnectionManager(ConnectionString connectionString) : base(connectionString) { }
+        public SqlConnectionManager(SqlConnectionString connectionString) : base(connectionString) { }
 
-        public SqlConnectionManager(string connectionString) : base(new ConnectionString(connectionString)) { }
+        public SqlConnectionManager(string connectionString) : base(new SqlConnectionString(connectionString)) { }
 
         string PageVerify { get; set; }
         string RecoveryModel { get; set; }
@@ -75,9 +75,10 @@ namespace ALE.ETLBox.ConnectionManager
         public override IConnectionManager Clone()
         {
             if (LeaveOpen) return this;
-            SqlConnectionManager clone = new SqlConnectionManager((ConnectionString)ConnectionString)
+            SqlConnectionManager clone = new SqlConnectionManager((SqlConnectionString)ConnectionString)
             {
-                MaxLoginAttempts = this.MaxLoginAttempts
+                MaxLoginAttempts = this.MaxLoginAttempts,
+                ModifyDBSettings = this.ModifyDBSettings
             };
             return clone;
         }

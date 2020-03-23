@@ -8,7 +8,6 @@ namespace ALE.ETLBox.DataFlow
     {
         public Func<TInput[], TInput[]> BeforeBatchWrite { get; set; }
         public new ITargetBlock<TInput> TargetBlock => Buffer;
-
         public int BatchSize
         {
             get { return batchSize; }
@@ -18,6 +17,7 @@ namespace ALE.ETLBox.DataFlow
                 InitObjects(batchSize);
             }
         }
+        private int batchSize;
 
         public new void AddPredecessorCompletion(Task completion)
         {
@@ -25,7 +25,8 @@ namespace ALE.ETLBox.DataFlow
             completion.ContinueWith(t => CheckCompleteAction());
         }
 
-        protected new void CheckCompleteAction() {
+        protected new void CheckCompleteAction()
+        {
             Task.WhenAll(PredecessorCompletions).ContinueWith(t =>
             {
                 if (!TargetBlock.Completion.IsCompleted)
@@ -36,12 +37,7 @@ namespace ALE.ETLBox.DataFlow
             });
         }
 
-        private int batchSize;
-
-        protected Action CloseStreamsAction { get; set; }
         protected BatchBlock<TInput> Buffer { get; set; }
-        internal TypeInfo TypeInfo { get; set; }
-
 
         protected virtual void InitObjects(int batchSize)
         {
@@ -49,7 +45,6 @@ namespace ALE.ETLBox.DataFlow
             TargetAction = new ActionBlock<TInput[]>(d => WriteBatch(ref d));
             SetCompletionTask();
             Buffer.LinkTo(TargetAction, new DataflowLinkOptions() { PropagateCompletion = true });
-            TypeInfo = new TypeInfo(typeof(TInput));
         }
 
         protected virtual void WriteBatch(ref TInput[] data)
@@ -58,13 +53,5 @@ namespace ALE.ETLBox.DataFlow
             if (BeforeBatchWrite != null)
                 data = BeforeBatchWrite.Invoke(data);
         }
-
-        protected override void CleanUp()
-        {
-            CloseStreamsAction?.Invoke();
-            OnCompletion?.Invoke();
-            NLogFinish();
-        }
-
     }
 }

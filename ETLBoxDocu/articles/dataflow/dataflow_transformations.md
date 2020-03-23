@@ -54,30 +54,59 @@ RowTransformation&lt;string[], MySimpleRow&gt; trans = new RowTransformation&lt;
 });
 ```
 
-### Lookup
+### LookupTransformation
 
 The lookup is a row transformation, but before it starts processing any rows it will load all data from the given LookupSource into memory 
 and will make it accessible as a List object.
 Though the lookup is non-blocking, it will take as much memory as the lookup table needs to be loaded fully into memory. 
 
-Here is an example:
+A lookup can be used with the Attributes `MatchColumn` and `RetrieveColumn`. The MatchColumn defines which property in the target object needs to match, so 
+that the lookup should retrieve the value. The RetrieveColumn maps the retrieved value to a property in the target class. 
+
+Let's look at an example: 
 
 ```C#
-DBSource<MyLookupRow> lookupSource = new DBSource<MyLookupRow>(connection, "Lookup");
+  public class LookupData
+{
+    [MatchColumn("LookupId")]
+    public int Id { get; set; }
+    [RetrieveColumn("LookupValue")]
+    public string Value { get; set; }
+}
+
+public class InputDataRow
+{
+    public int LookupId { get; set; }
+    public string LookupValue { get; set; }
+}
+
+MemorySource<InputDataRow> source = new MemorySource<InputDataRow>();
+source.Data.Add(new InputDataRow() { LookupId = 1 });
+MemorySource<LookupData> lookupSource = new MemorySource<LookupData>();
+lookupSource.Data.Add(new LookupData() { Id = 1, Value = "Test1" });
+
+var lookup = new LookupTransformation<InputDataRow, LookupData>();
+lookup.Source = lookupSource;
+MemoryDestination<InputDataRow> dest = new MemoryDestination<InputDataRow>();
+source.LinkTo(lookup);
+lookup.LinkTo(dest);
+```
+
+If you don't want to use attributes, you can define your own lookup functions. 
+
+```C#
+DbSource<MyLookupRow> lookupSource = new DbSource<MyLookupRow>(connection, "Lookup");
 List<MyLookupRow> LookupTableData = new List<MyLookupRow>();
-Lookup<MyInputDataRow, MyOutputDataRow, MyLookupRow> lookup = new Lookup<MyInputDataRow, MyOutputDataRow, MyLookupRow>(
+LookupTransformation<MyInputDataRow, MyLookupRow> lookup = new Lookup<MyInputDataRow, MyLookupRow>(
+    lookupSource,
     row =>
     {
-        MyOutputDataRow output = new MyOutputDataRow()
-        {
-            Col1 = row.Col1,
-            Col2 = row.Col2,
-            Col3 = LookupTableData.Where(ld => ld.Key == row.Col1).Select(ld => ld.LookupValue1).FirstOrDefault(),
-            Col4 = LookupTableData.Where(ld => ld.Key == row.Col1).Select(ld => ld.LookupValue2).FirstOrDefault(),
-        };
-        return output;
+        Col1 = row.Col1,
+        Col2 = row.Col2,
+        Col3 = LookupTableData.Where(ld => ld.Key == row.Col1).Select(ld => ld.LookupValue1).FirstOrDefault(),
+        Col4 = LookupTableData.Where(ld => ld.Key == row.Col1).Select(ld => ld.LookupValue2).FirstOrDefault(),
+        return row;
     }
-    , lookupSource
     , LookupTableData
 );
 ```
@@ -98,11 +127,11 @@ The following code demonstrate a simple example where data would be duplicated a
 a database table and a Json file. 
 
 ```C#
-var source = new CSVSource("test.csv");
+var source = new CsvSource("test.csv");
 
 var multicast = new Multicast();
 var destination1 = new JsonDestination("test.json");
-var destination2 = new DBDestination("TestTable");
+var destination2 = new DbDestination("TestTable");
 
 source.LinkTo(multicast);
 multicast.LinkTo(destination1);
@@ -115,11 +144,11 @@ E.g. the following code would only copy data into Table1 where the first column 
 copied into Table2.
 
 ```C#
-var source = new CSVSource("test.csv");
+var source = new CsvSource("test.csv");
 
 var multicast = new Multicast();
-var destination1 = new DBDestination("Table1");
-var destination2 = new DBDestination("Table2");
+var destination1 = new DbDestination("Table1");
+var destination2 = new DbDestination("Table2");
 
 source.LinkTo(multicast);
 multicast.LinkTo(destination1, row => row[0] > 0);
@@ -143,9 +172,9 @@ output and the inputs can be different, as long as you handle it in the join fun
 MergeJoin is a non blocking transformation. 
 
 ```C#
-DBSource<MyInputRowType1> source1 = new DBSource<MyInputRowType1>(Connection, "MergeJoinSource1");
-DBSource<MyInputRowType2> source2 = new DBSource<MyInputRowType2>(Connection, "MergeJoinSource2");
-DBDestination<MyOutputRowType> dest = new DBDestination<MyOutputRowType>(Connection, "MergeJoinDestination");
+DbSource<MyInputRowType1> source1 = new DbSource<MyInputRowType1>(Connection, "MergeJoinSource1");
+DbSource<MyInputRowType2> source2 = new DbSource<MyInputRowType2>(Connection, "MergeJoinSource2");
+DbDestination<MyOutputRowType> dest = new DbDestination<MyOutputRowType>(Connection, "MergeJoinDestination");
 
 MergeJoin<MyInputRowType1, MyInputRowType2, MyOutputRowType> join = new MergeJoin<MyInputRowType1, MyInputRowType2, MyOutputRowType>(
     (inputRow1, inputRow2) => {
@@ -156,6 +185,48 @@ MergeJoin<MyInputRowType1, MyInputRowType2, MyOutputRowType> join = new MergeJoi
 source1.LinkTo(join.Target1);
 source2.LinkTo(join.Target2);
 join.LinkTo(dest);
+```
+
+### Aggregation
+
+The aggregation allow you to aggregate data in your flow in a non-blocking transformation. Aggregation functions
+are sum, min, max and count. This means that you can calculate a total sum, the min or max value or the count of a all items
+in your flow. Also, you can define your own aggregation function.
+The aggregation does not necessarily be calculated on your whole data. You can specify that your calculation is grouped by a particular property or function.
+
+There are two ways to use the Aggregation. The easier way is to make use of the attributes `AggregationColumn` and `GroupColumn`. The first parameter is the 
+property name of target property.
+
+```C#
+public class MyRow
+{
+    public string ClassName { get; set; }         
+    public double DetailValue { get; set; }
+}
+
+public class MyAggRow
+{
+    [GroupColumn(nameof(MyRow.ClassName))]
+    public string GroupName { get; set; }
+    [AggregateColumn(nameof(MyRow.DetailValue), AggregationMethod.Sum)]
+    public double AggValue { get; set; }
+}
+
+MemorySource<MyRow> source = new MemorySource<MyRow>();
+Aggregation<MyRow, MyAggRow> agg = new Aggregation<MyRow, MyAggRow>();
+MemoryDestination<MyAggRow> dest = new MemoryDestination<MyAggRow>();
+source.LinkTo(agg);
+agg.LinkTo(dest);
+```
+
+To achieve the same behaviour with your own functions, you could create the Aggregation like this: 
+
+```C#
+Aggregation<MyRow, MyAggRow> agg = new Aggregation<MyRow, MyAggRow>(
+    (row, aggValue) => aggValue.AggValue += row.DetailValue,
+    row => row.ClassName,
+    (key, agg) => agg.GroupName = (string)key
+);
 ```
 
 ## Blocking Transformations

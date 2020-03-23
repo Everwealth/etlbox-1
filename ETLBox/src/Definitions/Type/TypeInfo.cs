@@ -9,28 +9,13 @@ namespace ALE.ETLBox.DataFlow
     internal class TypeInfo
     {
         internal PropertyInfo[] Properties { get; set; }
-        internal List<string> PropertyNames { get; set; }
-        internal Dictionary<string, int> PropertyIndex { get; set; }
-        internal Dictionary<string, string> ColumnMap2Property { get; set; }
-        internal Dictionary<int, int> ExcelIndex2PropertyIndex { get; set; }
-        internal Dictionary<PropertyInfo, Type> UnderlyingPropType { get; set; }
-        internal List<string> IdColumnNames { get; set; }
+        protected Dictionary<string, int> PropertyIndex { get; set; } = new Dictionary<string, int>();
         internal int PropertyLength { get; set; }
         internal bool IsArray { get; set; } = true;
         internal bool IsDynamic { get; set; }
         internal int ArrayLength { get; set; }
 
         internal TypeInfo(Type typ)
-        {
-            PropertyNames = new List<string>();
-            PropertyIndex = new Dictionary<string, int>();
-            ColumnMap2Property = new Dictionary<string, string>();
-            ExcelIndex2PropertyIndex = new Dictionary<int, int>();
-            IdColumnNames = new List<string>();
-            UnderlyingPropType = new Dictionary<PropertyInfo, Type>();
-            GatherTypeInfos(typ);
-        }
-        private void GatherTypeInfos(Type typ)
         {
             IsArray = typ.IsArray;
             if (typeof(IDynamicMetaObjectProvider).IsAssignableFrom(typ))
@@ -42,12 +27,8 @@ namespace ALE.ETLBox.DataFlow
                 int index = 0;
                 foreach (var propInfo in Properties)
                 {
-                    PropertyNames.Add(propInfo.Name);
                     PropertyIndex.Add(propInfo.Name, index);
-                    AddColumnMappingAttribute(propInfo);
-                    AddExcelColumnAttribute(propInfo, index);
-                    AddMergeIdColumnNameAttribute(propInfo);
-                    AddUnderlyingType(propInfo);
+                    RetrieveAdditionalTypeInfo(propInfo, index);
                     index++;
                 }
             }
@@ -55,79 +36,19 @@ namespace ALE.ETLBox.DataFlow
             {
                 ArrayLength = typ.GetArrayRank();
             }
-
         }
 
-        private void AddColumnMappingAttribute(PropertyInfo propInfo)
+        internal static Type TryGetUnderlyingType(PropertyInfo propInfo)
         {
-            var attr = propInfo.GetCustomAttribute(typeof(ColumnMap)) as ColumnMap;
-            if (attr != null)
-                ColumnMap2Property.Add(attr.ColumnName, propInfo.Name);
+            return Nullable.GetUnderlyingType(propInfo.PropertyType) ?? propInfo.PropertyType;
         }
 
-        private void AddExcelColumnAttribute(PropertyInfo propInfo, int curIndex)
+        protected virtual void RetrieveAdditionalTypeInfo(PropertyInfo propInfo, int currentIndex)
         {
-            var attr = propInfo.GetCustomAttribute(typeof(ExcelColumn)) as ExcelColumn;
-            if (attr != null)
-                ExcelIndex2PropertyIndex.Add(attr.Index, curIndex);
+            ;
         }
 
-        private void AddMergeIdColumnNameAttribute(PropertyInfo propInfo)
-        {
-            var attr = propInfo.GetCustomAttribute(typeof(IdColumn)) as IdColumn;
-            if (attr != null)
-            {
-                var cmattr = propInfo.GetCustomAttribute(typeof(ColumnMap)) as ColumnMap;
-                if (cmattr != null)
-                    IdColumnNames.Add(cmattr.ColumnName);
-                else
-                    IdColumnNames.Add(propInfo.Name);
-            }
-        }
 
-        private void AddUnderlyingType(PropertyInfo propInfo)
-        {
-            Type t = Nullable.GetUnderlyingType(propInfo.PropertyType) ?? propInfo.PropertyType;
-            UnderlyingPropType.Add(propInfo, t);
-        }
-
-        internal static object CastPropertyValue(PropertyInfo property, string value)
-        {
-            if (property == null || String.IsNullOrEmpty(value))
-                return null;
-            if (property.PropertyType == typeof(bool))
-                return value == "1" || value == "true" || value == "on" || value == "checked";
-            else
-            {
-                Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-                return Convert.ChangeType(value, t);
-            }
-        }
-
-        internal bool HasPropertyOrColumnMapping(string name)
-        {
-            if (ColumnMap2Property.ContainsKey(name))
-                return true;
-            else
-                return PropertyNames.Any(propName => propName == name);
-        }
-        internal PropertyInfo GetInfoByPropertyNameOrColumnMapping(string propNameOrColMapName)
-        {
-            PropertyInfo result = null;
-            if (ColumnMap2Property.ContainsKey(propNameOrColMapName))
-                result = Properties[PropertyIndex[ColumnMap2Property[propNameOrColMapName]]];
-            else
-                result = Properties[PropertyIndex[propNameOrColMapName]];
-            return result;
-        }
-
-        internal int GetIndexByPropertyNameOrColumnMapping(string propNameOrColMapName)
-        {
-            if (ColumnMap2Property.ContainsKey(propNameOrColMapName))
-                return PropertyIndex[ColumnMap2Property[propNameOrColMapName]];
-            else
-                return PropertyIndex[propNameOrColMapName];
-        }
     }
 }
 

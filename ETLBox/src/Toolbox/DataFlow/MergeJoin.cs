@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
@@ -44,8 +45,6 @@ namespace ALE.ETLBox.DataFlow
         }
 
         /* Private stuff */
-        internal BufferBlock<TInput1> Buffer1 { get; set; }
-        internal BufferBlock<TInput1> Buffer2 { get; set; }
         internal JoinBlock<TInput1, TInput2> JoinBlock { get; set; }
         internal RowTransformation<Tuple<TInput1, TInput2>, TOutput> Transformation { get; set; }
 
@@ -152,17 +151,17 @@ namespace ALE.ETLBox.DataFlow
     /// <summary>
     /// Will join data from the two inputs into one output - on a row by row base.
     /// Make sure both inputs are sorted or in the right order. The non generic implementation deals with
-    /// string array as inputs and merged output.
+    /// a dynamic object as input and merged output.
     /// </summary>
-    public class MergeJoin : MergeJoin<string[], string[], string[]>
+    public class MergeJoin : MergeJoin<ExpandoObject, ExpandoObject, ExpandoObject>
     {
         public MergeJoin() : base()
         { }
 
-        public MergeJoin(Func<string[], string[], string[]> mergeJoinFunc) : base(mergeJoinFunc)
+        public MergeJoin(Func<ExpandoObject, ExpandoObject, ExpandoObject> mergeJoinFunc) : base(mergeJoinFunc)
         { }
 
-        public MergeJoin(string name, Func<string[], string[], string[]> mergeJoinFunc) : base(name, mergeJoinFunc)
+        public MergeJoin(string name, Func<ExpandoObject, ExpandoObject, ExpandoObject> mergeJoinFunc) : base(name, mergeJoinFunc)
         { }
     }
 }

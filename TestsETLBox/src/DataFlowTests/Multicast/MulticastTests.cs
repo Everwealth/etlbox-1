@@ -25,6 +25,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         {
             public int Col1 { get; set; }
             public string Col2 { get; set; }
+            public int Col3 => Col1;
         }
 
         [Fact]
@@ -37,10 +38,10 @@ namespace ALE.ETLBoxTests.DataFlowTests
             TwoColumnsTableFixture dest2Table = new TwoColumnsTableFixture("Destination2");
             TwoColumnsTableFixture dest3Table = new TwoColumnsTableFixture("Destination3");
 
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(Connection, "Source");
-            DBDestination<MySimpleRow> dest1 = new DBDestination<MySimpleRow>(Connection, "Destination1");
-            DBDestination<MySimpleRow> dest2 = new DBDestination<MySimpleRow>(Connection, "Destination2");
-            DBDestination<MySimpleRow> dest3 = new DBDestination<MySimpleRow>(Connection, "Destination3");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(Connection, "Source");
+            DbDestination<MySimpleRow> dest1 = new DbDestination<MySimpleRow>(Connection, "Destination1");
+            DbDestination<MySimpleRow> dest2 = new DbDestination<MySimpleRow>(Connection, "Destination2");
+            DbDestination<MySimpleRow> dest3 = new DbDestination<MySimpleRow>(Connection, "Destination3");
 
             //Act
             Multicast<MySimpleRow> multicast = new Multicast<MySimpleRow>();

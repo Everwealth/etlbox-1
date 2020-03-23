@@ -37,13 +37,14 @@ update or delete the data in the destination table.
 Deletion is optional (by default turned on) , and can be disabled with the property 
 `DisableDeletion` set to true. 
 
-The DBMerge was designed for scenario 1, but also  works for scenario 2 except for deletions. 
+The DBMerge was designed for scenario 1 and scenario 2. For scenario 2, the property DeltaMode has
+to be set to DeltaMode.Delta: `DeltaMode = DeltaMode.Delta`.
 
 ### Example 
 
 #### Data and object definition
 
-To implement an example sync between two tables, we will  need a `DBSource` pointing to our source table. 
+To implement an example sync between two tables, we will  need a `DbSource` pointing to our source table. 
  In our case we just pass a table name for the source table, but you could also define a sql query 
  (e.g. which gives you only the delta records).
 
@@ -97,7 +98,7 @@ Key |Value         |
 No we can already set up a data flow. It would look like this: 
 
 ```C#
-DBSource<MyMergeRow> source = new DBSource<MyMergeRow>(connection, "SourceTable");
+DbSource<MyMergeRow> source = new DbSource<MyMergeRow>(connection, "SourceTable");
 DBMerge<MyMergeRow> merge = new DBMerge<MyMergeRow>(connection, "DestinationTable");
 source.LinkTo(dest);
 source.Execute();
@@ -157,9 +158,9 @@ This information can be used as a source for further processing in the data flow
 simple by connecting the DBMerge to a transformation or another Destination. So our complete flow could look like this:
 
 ```C#
-DBSource<MyMergeRow> source = new DBSource<MyMergeRow>(connection, "SourceTable");
+DbSource<MyMergeRow> source = new DbSource<MyMergeRow>(connection, "SourceTable");
 DBMerge<MyMergeRow> merge = new DBMerge<MyMergeRow>(connection, "DestinationTable");
-DBDestination<MyMergeRow> delta = new DBDestination<MyMergeRow>(connection, "DeltaTable");
+DbDestination<MyMergeRow> delta = new DbDestination<MyMergeRow>(connection, "DeltaTable");
 source.LinkTo(merge);
 merge.LinkTo(delta);
 source.Execute();
@@ -189,6 +190,35 @@ if you expect a lot of deletions, but you will always read all data from the des
 Unfortunately, there is no general recommendation when to use this approach. 
 
 Also, if you don't specify any Id columns with teh `IdColumn` attribute, the DbMerge will use the truncate method automatically. 
+
+#### Delta mode
+
+If the source transfer delta information, then you can set the DbMerge delta mode:
+
+```C#
+DbMerge<MyMergeRow> dest = new DbMerge<MyMergeRow>(connection, "DBMergeDeltaDestination")
+{
+    DeltaMode = DeltaMode.Delta
+};
+```
+ 
+In delta mode, by default objects in the destination won't be deleted. It can be that there is a property in your source 
+that is an indicator that a record is deleted. In this case, you can flag this property with the attribute `DeleteColumn`.
+
+```C#
+public class MyMergeRow : MergeableRow
+{
+    [IdColumn]
+    public long Key { get; set; }
+    [CompareColumn]
+    public string Value { get; set; }
+    [DeleteColumn(true)]
+    public bool DeleteThisRow { get; set; }
+}
+```
+
+In this example object, if the property DeleteThisRow is set to true, the record in the destination will be deleted
+if it matches with the Key property that is flagged with the attribute IdColumn.
 
 #### ColumnMap attribute
 

@@ -51,7 +51,8 @@ namespace ALE.ETLBoxTests.DataFlowTests
         //Download and configure Odbc driver for access first! This test points to access file on local path
         //Odbc driver needs to be 64bit if using 64bit .NET core and 32bit if using 32bit version of .NET Core!
         //(Visual Studio 2019 16.4 changed default behvaiour for xunit Tests - they now run with .NET Core 32bit versions
-        //https://www.microsoft.com/en-us/download/details.aspx?id=13255
+        //Driver Access >2016 https://www.microsoft.com/en-us/download/details.aspx?id=54920
+        //Driver Access >2010 https://www.microsoft.com/en-us/download/details.aspx?id=13255
         [Fact]
         public void CSVIntoAccess()
         {
@@ -59,8 +60,8 @@ namespace ALE.ETLBoxTests.DataFlowTests
             TableDefinition testTable = RecreateAccessTestTable();
 
             //Act
-            CSVSource source = new CSVSource("res/UseCases/AccessData.csv");
-            DBDestination<string[]> dest = new DBDestination<string[]>(batchSize: 2)
+            CsvSource<string[]> source = new CsvSource<string[]>("res/UseCases/AccessData.csv");
+            DbDestination<string[]> dest = new DbDestination<string[]>(batchSize: 2)
             {
                 DestinationTableDefinition = testTable,
                 ConnectionManager = AccessOdbcConnection
@@ -91,11 +92,11 @@ namespace ALE.ETLBoxTests.DataFlowTests
             TwoColumnsTableFixture destTable = new TwoColumnsTableFixture(SqlConnection, "dbo.AccessTargetTableWTD");
 
             //Act
-            DBSource<Data> source = new DBSource<Data>(AccessOdbcConnection)
+            DbSource<Data> source = new DbSource<Data>(AccessOdbcConnection)
             {
                 SourceTableDefinition = testTable
             };
-            DBDestination<Data> dest = new DBDestination<Data>(SqlConnection, "dbo.AccessTargetTableWTD");
+            DbDestination<Data> dest = new DbDestination<Data>(SqlConnection, "dbo.AccessTargetTableWTD");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
@@ -123,8 +124,8 @@ namespace ALE.ETLBoxTests.DataFlowTests
             TwoColumnsTableFixture destTable = new TwoColumnsTableFixture(SqlConnection, "dbo.AccessTargetTable");
 
             //Act
-            DBSource<Data> source = new DBSource<Data>(AccessOdbcConnection, "TestTable");
-            DBDestination<Data> dest = new DBDestination<Data>(SqlConnection, "dbo.AccessTargetTable");
+            DbSource<Data> source = new DbSource<Data>(AccessOdbcConnection, "TestTable");
+            DbDestination<Data> dest = new DbDestination<Data>(SqlConnection, "dbo.AccessTargetTable");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();

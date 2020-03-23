@@ -17,10 +17,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVDestinationSerializationTests
+    public class CsvDestinationSerializationTests
     {
         public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
-        public CSVDestinationSerializationTests(DataFlowDatabaseFixture dbFixture)
+        public CsvDestinationSerializationTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -50,14 +50,14 @@ namespace ALE.ETLBoxTests.DataFlowTests
 
 
             //Act
-            CSVDestination<MySeriRow> dest = new CSVDestination<MySeriRow>("./DateTimeSerialization.csv");
+            CsvDestination<MySeriRow> dest = new CsvDestination<MySeriRow>("./DateTimeSerialization.csv");
                         source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
             Assert.Equal(File.ReadAllText("./DateTimeSerialization.csv"),
-                File.ReadAllText("res/CSVDestination/DateTimeSerialization.csv"));
+                File.ReadAllText("res/CsvDestination/DateTimeSerialization.csv"));
         }
 
 

@@ -12,11 +12,11 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class DBSourceTests
+    public class DbSourceTests
     {
         public static IEnumerable<object[]> Connections => Config.AllSqlConnections("DataFlow");
 
-        public DBSourceTests(DataFlowDatabaseFixture dbFixture)
+        public DbSourceTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -30,13 +30,13 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void SimpleFlow(IConnectionManager connection)
         {
             //Arrange
-            TwoColumnsTableFixture source2Columns = new TwoColumnsTableFixture(connection, "DBSourceSimple");
+            TwoColumnsTableFixture source2Columns = new TwoColumnsTableFixture(connection, "DbSourceSimple");
             source2Columns.InsertTestData();
-            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DBDestinationSimple");
+            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DbDestinationSimple");
 
             //Act
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(connection, "DBSourceSimple");
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(connection, "DBDestinationSimple");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(connection, "DbSourceSimple");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(connection, "DbDestinationSimple");
 
             source.LinkTo(dest);
             source.Execute();

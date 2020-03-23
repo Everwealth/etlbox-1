@@ -12,11 +12,11 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class DBSourceExceptionTests
+    public class DbSourceExceptionTests
     {
         public static SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
 
-        public DBSourceExceptionTests(DataFlowDatabaseFixture dbFixture)
+        public DbSourceExceptionTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -24,8 +24,8 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void UnknownTable()
         {
             //Arrange
-            DBSource source = new DBSource(SqlConnection, "UnknownTable");
-            MemoryDestination dest = new MemoryDestination();
+            DbSource<string[]> source = new DbSource<string[]>(SqlConnection, "UnknownTable");
+            MemoryDestination<string[]> dest = new MemoryDestination<string[]>();
 
             //Act & Assert
             Assert.Throws<ETLBoxException>(() =>
@@ -45,12 +45,12 @@ namespace ALE.ETLBoxTests.DataFlowTests
                 {
                     new TableColumn("id", "INT")
                 });
-            DBSource source = new DBSource()
+            DbSource<string[]> source = new DbSource<string[]>()
             {
                 ConnectionManager = SqlConnection,
                 SourceTableDefinition = def
             };
-            MemoryDestination dest = new MemoryDestination();
+            MemoryDestination<string[]> dest = new MemoryDestination<string[]>();
 
             //Act & Assert
             Assert.Throws<Microsoft.Data.SqlClient.SqlException>(() =>

@@ -17,14 +17,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class JsonDestinationTests : IDisposable
+    public class JsonDestinationTests 
     {
         public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
         public JsonDestinationTests(DataFlowDatabaseFixture dbFixture)
-        {
-        }
-
-        public void Dispose()
         {
         }
 
@@ -40,10 +36,10 @@ namespace ALE.ETLBoxTests.DataFlowTests
             //Arrange
             TwoColumnsTableFixture s2C = new TwoColumnsTableFixture("JsonDestSimple");
             s2C.InsertTestDataSet3();
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "JsonDestSimple");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(SqlConnection, "JsonDestSimple");
 
             //Act
-            JsonDestination<MySimpleRow> dest = new JsonDestination<MySimpleRow>("./SimpleWithObject.json");
+            JsonDestination<MySimpleRow> dest = new JsonDestination<MySimpleRow>("./SimpleWithObject.json", ResourceType.File);
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
@@ -51,25 +47,6 @@ namespace ALE.ETLBoxTests.DataFlowTests
             //Assert
             Assert.Equal(File.ReadAllText("res/JsonDestination/TwoColumnsSet3.json")
                 , File.ReadAllText("./SimpleWithObject.json"));
-        }
-
-        [Fact]
-        public void SimpleFlowWithBatchWrite()
-        {
-            //Arrange
-            TwoColumnsTableFixture s2C = new TwoColumnsTableFixture("JsonDestBatch");
-            s2C.InsertTestDataSet3();
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "JsonDestBatch");
-
-            //Act
-            JsonDestination<MySimpleRow> dest = new JsonDestination<MySimpleRow>("./ObjectWithBatchWrite.json");
-            source.LinkTo(dest);
-            source.Execute();
-            dest.Wait();
-
-            //Assert
-            Assert.Equal(File.ReadAllText("res/JsonDestination/TwoColumnsSet3.json"),
-                File.ReadAllText("./ObjectWithBatchWrite.json"));
         }
     }
 }

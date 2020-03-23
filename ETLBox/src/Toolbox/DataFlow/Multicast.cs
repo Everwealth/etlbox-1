@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ALE.ETLBox.Helper;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Reflection;
@@ -65,7 +66,7 @@ namespace ALE.ETLBox.DataFlow
                 clone = (TInput)Activator.CreateInstance(typeof(TInput));
                 foreach (PropertyInfo propInfo in TypeInfo.Properties)
                 {
-                    propInfo.SetValue(clone, propInfo.GetValue(row));
+                    propInfo.TrySetValue(clone, propInfo.GetValue(row));
                 }
             }
             LogProgress();
@@ -75,18 +76,18 @@ namespace ALE.ETLBox.DataFlow
 
     /// <summary>
     /// A multicast duplicates data from the input into two outputs. The non generic version or the multicast
-    /// excepct a string array as input and has two output with the copies of the incoming stríng array.
+    /// excepct a dynamic object as input and has two output with the copies of the input.
     /// </summary>
     /// <see cref="Multicast{TInput}"></see>
     /// <example>
     /// <code>
-    /// //Non generic Multicast works with string[] as input and output
+    /// //Non generic Multicast works with dynamic object as input and output
     /// Multicast multicast = new Multicast();
     /// multicast.LinkTo(dest1);
     /// multicast.LinkTo(dest2);
     /// </code>
     /// </example>
-    public class Multicast : Multicast<string[]>
+    public class Multicast : Multicast<ExpandoObject>
     {
         public Multicast() : base() { }
 

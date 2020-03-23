@@ -15,9 +15,9 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVDestinationErrorLinkingTests
+    public class CsvDestinationErrorLinkingTests
     {
-        public CSVDestinationErrorLinkingTests()
+        public CsvDestinationErrorLinkingTests()
         {
 
         }
@@ -51,7 +51,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
                 new MySimpleRow() { Col1 = "3" },
 
             };
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("ErrorFile.csv");
+            CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("ErrorFile.csv");
             MemoryDestination<ETLBoxError> errorDest = new MemoryDestination<ETLBoxError>();
 
             //Act
@@ -63,7 +63,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
 
             //Assert
             Assert.Equal(File.ReadAllText("./ErrorFile.csv"),
-                 File.ReadAllText("res/CSVDestination/TwoColumnsErrorLinking.csv"));
+                 File.ReadAllText("res/CsvDestination/TwoColumnsErrorLinking.csv"));
             Assert.Collection<ETLBoxError>(errorDest.Data,
                 d => Assert.True(!string.IsNullOrEmpty(d.RecordAsJson) && !string.IsNullOrEmpty(d.ErrorText)),
                  d => Assert.True(!string.IsNullOrEmpty(d.RecordAsJson) && !string.IsNullOrEmpty(d.ErrorText))
@@ -82,7 +82,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
                 new MySimpleRow() { Col1 = "1" },
                 new MySimpleRow() { Col1 = null }
             };
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("ErrorFileNoError.csv");
+            CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("ErrorFileNoError.csv");
 
             //Act
             //Assert

@@ -17,10 +17,10 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class CSVDestinationConfigurationTests
+    public class CsvDestinationConfigurationTests
     {
         public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
-        public CSVDestinationConfigurationTests(DataFlowDatabaseFixture dbFixture)
+        public CsvDestinationConfigurationTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -37,12 +37,12 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void DisableHeader()
         {
             //Arrange
-            TwoColumnsTableFixture s2c = new TwoColumnsTableFixture("CSVSourceNoHeader");
+            TwoColumnsTableFixture s2c = new TwoColumnsTableFixture("CsvSourceNoHeader");
             s2c.InsertTestData();
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(SqlConnection, "CSVSourceNoHeader");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(SqlConnection, "CsvSourceNoHeader");
 
             //Act
-            CSVDestination<MySimpleRow> dest = new CSVDestination<MySimpleRow>("./ConfigurationNoHeader.csv");
+            CsvDestination<MySimpleRow> dest = new CsvDestination<MySimpleRow>("./ConfigurationNoHeader.csv");
             dest.Configuration.HasHeaderRecord = false;
             source.LinkTo(dest);
             source.Execute();
@@ -50,7 +50,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
 
             //Assert
             Assert.Equal(File.ReadAllText("./ConfigurationNoHeader.csv"),
-                File.ReadAllText("res/CSVDestination/TwoColumnsNoHeader.csv"));
+                File.ReadAllText("res/CsvDestination/TwoColumnsNoHeader.csv"));
         }
 
 

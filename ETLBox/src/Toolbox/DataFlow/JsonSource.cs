@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Dynamic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -17,21 +18,12 @@ namespace ALE.ETLBox.DataFlow
     /// JsonSource&lt;POCO&gt; source = new JsonSource&lt;POCO&gt;("https://jsonplaceholder.typicode.com/todos");
     /// </code>
     /// </example>
-    public class JsonSource<TOutput> : DataFlowSource<TOutput>, ITask, IDataFlowSource<TOutput>
+    public class JsonSource<TOutput> : DataFlowStreamSource<TOutput>, ITask, IDataFlowSource<TOutput>
     {
         /* ITask Interface */
-        public override string TaskName => $"Read Json  from {Uri ?? ""}";
+        public override string TaskName => $"Read Json from Uri: {CurrentRequestUri ?? ""}";
 
         /* Public properties */
-        /// <summary>
-        /// The Url of the webservice (e.g. https://test.com/foo) or the file name (relative or absolute)
-        /// </summary>
-        public string Uri { get; set; }
-        /// <summary>
-        /// Specifies the resourc type. By default requests are made with HttpClient.
-        /// Specify ResourceType.File if you want to read from a json file.
-        /// </summary>
-        public ResourceType ResourceType { get; set; }
         /// <summary>
         /// The Newtonsoft.Json.JsonSerializer used to deserialize the json into the used data type.
         /// </summary>
@@ -39,12 +31,9 @@ namespace ALE.ETLBox.DataFlow
 
         /* Private stuff */
         JsonTextReader JsonTextReader { get; set; }
-        StreamReader StreamReader { get; set; }
-        HttpClient HttpClient { get; set; }
 
-        public JsonSource() : base()
+        public JsonSource()
         {
-            TypeInfo = new TypeInfo(typeof(TOutput));
             JsonSerializer = new JsonSerializer();
         }
 
@@ -58,43 +47,16 @@ namespace ALE.ETLBox.DataFlow
             ResourceType = resourceType;
         }
 
-
-        public override void Execute()
+        protected override void InitReader()
         {
-            NLogStart();
-            Open();
-            try
-            {
-                ReadAll();
-                Buffer.Complete();
-            }
-            finally
-            {
-                Close();
-            }
-            NLogFinish();
-        }
-
-        private void Open()
-        {
-            if (ResourceType == ResourceType.File)
-            {
-                StreamReader = new StreamReader(Uri, true);
-            }
-            else
-            {
-                HttpClient = new HttpClient();
-                StreamReader = new StreamReader(HttpClient.GetStreamAsync(new Uri(Uri)).Result);
-            }
             JsonTextReader = new JsonTextReader(StreamReader);
         }
 
-
-        private void ReadAll()
+        protected override void ReadAll()
         {
-            JsonTextReader.Read();
-            if (JsonTextReader.TokenType != JsonToken.StartArray)
-                throw new ETLBoxException("Json needs to contain an array on root level!");
+            do
+            {
+            } while (JsonTextReader.Read() && JsonTextReader.TokenType != JsonToken.StartArray);
 
             bool skipRecord = false;
             if (ErrorHandler.HasErrorBuffer)
@@ -106,7 +68,7 @@ namespace ALE.ETLBox.DataFlow
                 };
             while (JsonTextReader.Read())
             {
-                if (JsonTextReader.TokenType == JsonToken.EndArray) continue;
+                if (JsonTextReader.TokenType == JsonToken.EndArray || JsonTextReader.TokenType == JsonToken.EndObject) continue;
                 else
                 {
                     TOutput record = JsonSerializer.Deserialize<TOutput>(JsonTextReader);
@@ -122,17 +84,15 @@ namespace ALE.ETLBox.DataFlow
             }
         }
 
-        private void Close()
+        protected override void CloseReader()
         {
             JsonTextReader?.Close();
-            StreamReader?.Dispose();
-            HttpClient?.Dispose();
         }
     }
 
     /// <summary>
     /// Reads data from a json source. While reading the data from the file, data is also asnychronously posted into the targets.
-    /// JsonSource as a nongeneric type always return a string array as output. If you need typed output, use
+    /// JsonSource as a nongeneric type returns a dynamic object as output. If you need typed output, use
     /// the JsonSource&lt;TOutput&gt; object instead.
     /// </summary>
     /// <see cref="JsonSource{TOutput}"/>
@@ -143,7 +103,7 @@ namespace ALE.ETLBox.DataFlow
     /// source.Execute(); //Start the dataflow
     /// </code>
     /// </example>
-    public class JsonSource : JsonSource<string[]>
+    public class JsonSource : JsonSource<ExpandoObject>
     {
         public JsonSource() : base() { }
         public JsonSource(string uri) : base(uri) { }

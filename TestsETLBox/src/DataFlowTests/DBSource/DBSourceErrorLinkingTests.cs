@@ -13,11 +13,11 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class DBSourceErrorLinkingTests
+    public class DbSourceErrorLinkingTests
     {
         public static IEnumerable<object[]> Connections => Config.AllSqlConnections("DataFlow");
 
-        public DBSourceErrorLinkingTests(DataFlowDatabaseFixture dbFixture)
+        public DbSourceErrorLinkingTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -36,12 +36,12 @@ namespace ALE.ETLBoxTests.DataFlowTests
                 Task.Delay(100).Wait(); //Database was locked and needs to recover after exception
 
             //Arrange
-            CreateSourceTable(connection, "DBSourceErrorLinking");
-            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DBDestinationErrorLinking");
+            CreateSourceTable(connection, "DbSourceErrorLinking");
+            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DbDestinationErrorLinking");
 
             //Act
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(connection, "DBSourceErrorLinking");
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(connection, "DBDestinationErrorLinking");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(connection, "DbSourceErrorLinking");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(connection, "DbDestinationErrorLinking");
             MemoryDestination<ETLBoxError> errorDest = new MemoryDestination<ETLBoxError>();
             source.LinkTo(dest);
             source.LinkErrorTo(errorDest);
@@ -62,13 +62,13 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void WithoutErrorLinking(IConnectionManager connection)
         {
             //Arrange
-            CreateSourceTable(connection, "DBSourceNoErrorLinking");
+            CreateSourceTable(connection, "DbSourceNoErrorLinking");
 
-            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DBDestinationNoErrorLinking");
+            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture(connection, "DbDestinationNoErrorLinking");
 
             //Act
-            DBSource<MySimpleRow> source = new DBSource<MySimpleRow>(connection, "DBSourceNoErrorLinking");
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(connection, "DBDestinationNoErrorLinking");
+            DbSource<MySimpleRow> source = new DbSource<MySimpleRow>(connection, "DbSourceNoErrorLinking");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(connection, "DbDestinationNoErrorLinking");
             source.LinkTo(dest);
 
             //Assert

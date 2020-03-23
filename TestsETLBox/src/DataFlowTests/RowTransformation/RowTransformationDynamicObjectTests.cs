@@ -27,7 +27,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         {
             //Arrange
             TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("DestinationRowTransformationDynamic");
-            CSVSource<ExpandoObject> source = new CSVSource<ExpandoObject>("res/RowTransformation/TwoColumns.csv");
+            CsvSource<ExpandoObject> source = new CsvSource<ExpandoObject>("res/RowTransformation/TwoColumns.csv");
 
             //Act
             RowTransformation<ExpandoObject> trans = new RowTransformation<ExpandoObject>(
@@ -38,7 +38,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
                     c.Col2 = c.Header2;
                     return c;
                 });
-            DBDestination<ExpandoObject> dest = new DBDestination<ExpandoObject>(Connection, "DestinationRowTransformationDynamic");
+            DbDestination<ExpandoObject> dest = new DbDestination<ExpandoObject>(Connection, "DestinationRowTransformationDynamic");
             source.LinkTo(trans);
             trans.LinkTo(dest);
             source.Execute();

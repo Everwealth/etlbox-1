@@ -1,76 +1,60 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
 
 namespace ALE.ETLBox.DataFlow
 {
     /// <summary>
-    /// A Csv destination defines a csv file where data from the flow is inserted. Inserts are done in batches (using Bulk insert).
+    /// A Csv destination defines a csv file where data from the flow is inserted.
     /// </summary>
-    /// <see cref="DBDestination"/>
+    /// <see cref="DbDestination"/>
     /// <typeparam name="TInput">Type of data input.</typeparam>
     /// <example>
     /// <code>
-    /// CSVDestination&lt;MyRow&gt; dest = new CSVDestination&lt;MyRow&gt;("/path/to/file.csv");
+    /// CsvDestination&lt;MyRow&gt; dest = new CsvDestination&lt;MyRow&gt;("/path/to/file.csv");
     /// dest.Wait(); //Wait for all data to arrive
     /// </code>
     /// </example>
-    public class CSVDestination<TInput> : DataFlowBatchDestination<TInput>, ITask, IDataFlowDestination<TInput>
+    public class CsvDestination<TInput> : DataFlowStreamDestination<TInput>, ITask, IDataFlowDestination<TInput>
     {
         /* ITask Interface */
-        public override string TaskName => $"Write CSV data into file {FileName ?? ""}";
-
-        public string FileName { get; set; }
-        public bool HasFileName => !String.IsNullOrWhiteSpace(FileName);
+        public override string TaskName => $"Write Csv data into file {Uri ?? ""}";
         public Configuration Configuration { get; set; }
 
-        internal const int DEFAULT_BATCH_SIZE = 1000;
-        StreamWriter StreamWriter { get; set; }
         CsvWriter CsvWriter { get; set; }
+        TypeInfo TypeInfo { get; set; }
 
-        public CSVDestination()
+        public CsvDestination()
         {
-            BatchSize = DEFAULT_BATCH_SIZE;
-        }
-
-        public CSVDestination(string fileName) : this()
-        {
-            FileName = fileName;
-        }
-
-        protected override void InitObjects(int batchSize)
-        {
-            base.InitObjects(batchSize);
             Configuration = new Configuration(CultureInfo.InvariantCulture);
             Configuration.TypeConverterOptionsCache.GetOptions<DateTime>().Formats = new[] { "yyyy-MM-dd HH:mm:ss.fff" };
-
+            TypeInfo = new TypeInfo(typeof(TInput));
+            ResourceType = ResourceType.File;
+            InitTargetAction();
         }
 
-        protected void InitCsvWriter()
+        public CsvDestination(string uri) : this()
         {
-            StreamWriter = new StreamWriter(FileName);
+            Uri = uri;
+        }
+
+        protected override void InitStream()
+        {
             CsvWriter = new CsvWriter(StreamWriter, Configuration, leaveOpen: true);
-            this.CloseStreamsAction = CloseStreams;
+            WriteHeaderIfRequired();
         }
 
-        protected override void WriteBatch(ref TInput[] data)
+        protected override void WriteIntoStream(TInput data)
         {
-            if (CsvWriter == null)
-            {
-                InitCsvWriter();
-                WriteHeaderIfRequired();
-            }
-            base.WriteBatch(ref data);
-
             if (TypeInfo.IsArray)
-                WriteArray(ref data);
+                WriteArray(data);
             else
-                WriteObject(ref data);
+                WriteObject(data);
 
-
-            LogProgressBatch(data.Length);
+            LogProgress();
         }
 
         private void WriteHeaderIfRequired()
@@ -82,74 +66,66 @@ namespace ALE.ETLBox.DataFlow
             }
         }
 
-        private void WriteArray(ref TInput[] data)
+        private void WriteArray(TInput data)
         {
-            foreach (var record in data)
+            if (data == null) return;
+            var recordAsArray = data as object[];
+            try
             {
-                if (record == null) continue;
-                var recordAsArray = record as object[];
-                try
+                foreach (var field in recordAsArray)
                 {
-                    foreach (var field in recordAsArray)
-                    {
-                        CsvWriter.WriteField(field);
-                    }
+                    CsvWriter.WriteField(field);
                 }
-                catch (Exception e)
-                {
-                    if (!ErrorHandler.HasErrorBuffer) throw e;
-                    ErrorHandler.Send(e, ErrorHandler.ConvertErrorData(record));
-                }
-
-                CsvWriter.NextRecord();
             }
+            catch (Exception e)
+            {
+                if (!ErrorHandler.HasErrorBuffer) throw e;
+                ErrorHandler.Send(e, ErrorHandler.ConvertErrorData(data));
+            }
+
+            CsvWriter.NextRecord();
         }
 
-        private void WriteObject(ref TInput[] data)
+        private void WriteObject(TInput data)
         {
-            foreach (var record in data)
+            if (data == null) return;
+            try
             {
-                if (record == null) continue;
-                try
-                {
-                    CsvWriter.WriteRecord(record);
-                }
-                catch (Exception e)
-                {
-                    if (!ErrorHandler.HasErrorBuffer) throw e;
-                    ErrorHandler.Send(e, ErrorHandler.ConvertErrorData(record));
-                }
-                CsvWriter.NextRecord();
+                CsvWriter.WriteRecord(data);
             }
+            catch (Exception e)
+            {
+                if (!ErrorHandler.HasErrorBuffer) throw e;
+                ErrorHandler.Send(e, ErrorHandler.ConvertErrorData(data));
+            }
+            CsvWriter.NextRecord();
         }
 
-        public void CloseStreams()
+        protected override void CloseStream()
         {
             CsvWriter?.Flush();
-            StreamWriter?.Flush();
             CsvWriter?.Dispose();
-            StreamWriter?.Close();
         }
     }
 
     /// <summary>
-    /// A Csv destination defines a csv file where data from the flow is inserted. Inserts are done in batches (using Bulk insert).
-    /// The CSVDestination access a string array as input type. If you need other data types, use the generic CSVDestination instead.
+    /// A Csv destination defines a csv file where data from the flow is inserted. 
+    /// The CsvDestination uses a dynamic object as input type. If you need other data types, use the generic CsvDestination instead.
     /// </summary>
-    /// <see cref="CSVDestination{TInput}"/>
+    /// <see cref="CsvDestination{TInput}"/>
     /// <example>
     /// <code>
-    /// //Non generic CSVDestination works with string[] as input
-    /// //use CSVDestination&lt;TInput&gt; for generic usage!
-    /// CSVDestination dest = new CSVDestination("/path/to/file.csv");
+    /// //Non generic CsvDestination works with dynamic object as input
+    /// //use CsvDestination&lt;TInput&gt; for generic usage!
+    /// CsvDestination dest = new CsvDestination("/path/to/file.csv");
     /// dest.Wait(); //Wait for all data to arrive
     /// </code>
     /// </example>
-    public class CSVDestination : CSVDestination<string[]>
+    public class CsvDestination : CsvDestination<ExpandoObject>
     {
-        public CSVDestination() : base() { }
+        public CsvDestination() : base() { }
 
-        public CSVDestination(string fileName) : base(fileName) { }
+        public CsvDestination(string fileName) : base(fileName) { }
 
     }
 

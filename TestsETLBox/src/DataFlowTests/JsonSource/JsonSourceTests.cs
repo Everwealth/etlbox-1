@@ -18,7 +18,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
     [Collection("DataFlow")]
     public class JsonSourceTests
     {
-        public SqlConnectionManager Connection => Config.SqlConnection.ConnectionManager("DataFlow");
+        public SqlConnectionManager SqlConnection => Config.SqlConnection.ConnectionManager("DataFlow");
         public JsonSourceTests(DataFlowDatabaseFixture dbFixture)
         {
         }
@@ -34,7 +34,7 @@ namespace ALE.ETLBoxTests.DataFlowTests
         {
             //Arrange
             TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("JsonSource2Cols");
-            DBDestination<MySimpleRow> dest = new DBDestination<MySimpleRow>(Connection, "JsonSource2Cols");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(SqlConnection, "JsonSource2Cols");
 
             //Act
             JsonSource<MySimpleRow> source = new JsonSource<MySimpleRow>("res/JsonSource/TwoColumns.json", ResourceType.File);
@@ -46,27 +46,21 @@ namespace ALE.ETLBoxTests.DataFlowTests
             dest2Columns.AssertTestData();
         }
 
-        public class Todo
-        {
-            [JsonProperty("Id")]
-            public int Key { get; set; }
-            public string Title { get; set; }
-        }
-
         [Fact]
-        public void JsonFromWebService()
+        public void ArrayInObject()
         {
             //Arrange
-            MemoryDestination<Todo> dest = new MemoryDestination<Todo>();
+            TwoColumnsTableFixture dest2Columns = new TwoColumnsTableFixture("JsonSourceArrayInObject");
+            DbDestination<MySimpleRow> dest = new DbDestination<MySimpleRow>(SqlConnection, "JsonSourceArrayInObject");
 
             //Act
-            JsonSource<Todo> source = new JsonSource<Todo>("https://jsonplaceholder.typicode.com/todos");
+            JsonSource<MySimpleRow> source = new JsonSource<MySimpleRow>("res/JsonSource/ArrayInObject.json", ResourceType.File);
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
-            Assert.All(dest.Data, item => Assert.True(item.Key > 0));
+            dest2Columns.AssertTestData();
         }
 
     }

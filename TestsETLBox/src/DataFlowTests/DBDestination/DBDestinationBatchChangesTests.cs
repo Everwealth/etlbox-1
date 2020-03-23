@@ -15,11 +15,11 @@ using Xunit;
 namespace ALE.ETLBoxTests.DataFlowTests
 {
     [Collection("DataFlow")]
-    public class DBDestinationBatchChangesTests
+    public class DbDestinationBatchChangesTests
     {
         public static IEnumerable<object[]> Connections => Config.AllSqlConnections("DataFlow");
 
-        public DBDestinationBatchChangesTests(DataFlowDatabaseFixture dbFixture)
+        public DbDestinationBatchChangesTests(DataFlowDatabaseFixture dbFixture)
         {
         }
 
@@ -27,8 +27,8 @@ namespace ALE.ETLBoxTests.DataFlowTests
         public void WithBatchChanges(IConnectionManager connection)
         {
             //Arrange
-            TwoColumnsTableFixture d2c = new TwoColumnsTableFixture(connection, "DBDestinationBatchChanges");
-            DBDestination dest = new DBDestination(connection, "DBDestinationBatchChanges", batchSize: 2)
+            TwoColumnsTableFixture d2c = new TwoColumnsTableFixture(connection, "DbDestinationBatchChanges");
+            DbDestination<string[]> dest = new DbDestination<string[]>(connection, "DbDestinationBatchChanges", batchSize: 2)
             {
                 BeforeBatchWrite = rowArray =>
                                    {
@@ -38,15 +38,15 @@ namespace ALE.ETLBoxTests.DataFlowTests
             };
 
             //Act
-            CSVSource source = new CSVSource("res/CSVSource/TwoColumns.csv");
+            CsvSource<string[]> source = new CsvSource<string[]>("res/CsvSource/TwoColumns.csv");
             source.LinkTo(dest);
             source.Execute();
             dest.Wait();
 
             //Assert
-            Assert.Equal(3, RowCountTask.Count(connection, "DBDestinationBatchChanges"));
-            Assert.Equal(2, RowCountTask.Count(connection, "DBDestinationBatchChanges", $"{d2c.QB}Col2{d2c.QE}='NewValue'"));
-            Assert.Equal(1, RowCountTask.Count(connection, "DBDestinationBatchChanges", $"{d2c.QB}Col1{d2c.QE} = 2 AND {d2c.QB}Col2{d2c.QE}='Test2'"));
+            Assert.Equal(3, RowCountTask.Count(connection, "DbDestinationBatchChanges"));
+            Assert.Equal(2, RowCountTask.Count(connection, "DbDestinationBatchChanges", $"{d2c.QB}Col2{d2c.QE}='NewValue'"));
+            Assert.Equal(1, RowCountTask.Count(connection, "DbDestinationBatchChanges", $"{d2c.QB}Col1{d2c.QE} = 2 AND {d2c.QB}Col2{d2c.QE}='Test2'"));
         }
     }
 }

@@ -6,9 +6,7 @@ ETL is the foundation of modern Business Intelligence application.
 It separates the analysis part from everything that comes before it. ETL stands for extract, transform 
 and load, and describes a three-step process:
 
-```
-Source Systems --> Extract, Transform, Load --> Data Warehouse
-```
+![Source Systems -> Extract, Transform, Load -> Data Warehouse](../images/source_etl_dwh.png)
 
 *Extracting* data is about acquiring it from a particular source and doing so in a way that all relevant data 
 is collected. For ETL to work well, data needs to come directly from the source and in its rawest form.
@@ -29,16 +27,7 @@ This engine runs inside your applications, APIs, and jobs to extract, filter, tr
 ETLBox speeds up your development by providing an easy-to-use toolbox for integrating your data from 
 different sources within your app and load them into any target you like. 
 
-```
-Sql Server  --|
-MySql       --|                                                         
-Postgres    --|     |-------------------Your app ---------------|    |-- Sql Server
-SQLite      --|---> Transform -> Validate -> Harmonize -> Clean ---> |-- CSV
-CSV         --|     |-------------------------------------------|    |-- & ... 
-Excel       --|
-Json        --| 
-Custom      --|
-```
+![Sources -> Transform, Validate, Harmonize, Clean, Deduplicate -> Destinations](../images/sources_harmonize_clean.png)
 
 ### What you can do with ETLBox
 
@@ -50,6 +39,15 @@ Here are a few things you can do with ETLBox:
 - Share data processing logic across web apps, batch jobs, and APIs.
 - Power your data ingestion and integration tools.
 - Consume large CSV, Excel or Json files
+
+### Data integration
+
+Data integration solves the problem of moving, transforming, and consolidating information from various sources like 
+databases, applications, files, and web services. Bringing them together enables you to cleanse, standarize, 
+de-duplicate, manipulate, and synchronize them. 
+Data integration can play an important role in any project, and it can be critical to have a rock-solid solution in place
+that is able to integrate numerous applications, services and databases. 
+ETLBox as an Extract, transform, and load (ETL) tool is a perfect fit when you need to create a data integration solution.
 
 ### Common data API
 
@@ -81,6 +79,18 @@ ETLBox is built on .NET Core and .NET Standard and runs with the latest version 
 in C# or any of the other .NET languages you know (e.g. VisualBasic or F#). 
 You can also use your existing tools, IDEs, containers, and libraries. 
 Being built on .NET Core means it can run on all servers, operating systems, and environments.
+
+### Works with Big Data
+
+ETLBox as an ETL tool was designed to handle big amounts of data and therefore you won't encounter any issues 
+when you need to handle big data.Any dataflow can have a source, a transformation and a destination. 
+While the source starts reading, it will post the data into it's output while continue reading the data. 
+As soon as a connected component retrieves any data in, it will start with the further processing 
+and subsequently send any processed data further down the line. Any destination will start writing data in the moment where 
+it receives it - sometimes in Batches, sometimes for every records, depending of the destination type.
+To achieve this, every compoment has its own set of buffers. So when you start to process big data, that won't mean
+that everything needs to fit into memory - only as much data is stored in memory as you need to keep the buffers filled 
+so that there is always enought data available to write into the destination.
 
 ## Continue learning
 
