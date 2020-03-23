@@ -5,10 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using TSQL;
-using TSQL.Statements;
 
 namespace ALE.ETLBox.DataFlow
 {
@@ -122,7 +119,7 @@ namespace ALE.ETLBox.DataFlow
         private void LoadTableDefinition()
         {
             if (HasTableName)
-                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(this.DbConnectionManager, TableName);
+                SourceTableDefinition = TableDefinition.GetDefinitionFromTableName(DbConnectionManager, TableName);
             else if (!HasSourceTableDefinition && !HasTableName)
                 throw new ETLBoxException("No Table definition or table name found! You must provide a table name or a table definition.");
         }
@@ -207,8 +204,23 @@ namespace ALE.ETLBox.DataFlow
                     if (_row != null)
                     {
                         var propInfo = TypeInfo.GetInfoByPropertyNameOrColumnMapping(colName);
-                        var con = colValue != null ? Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]) : colValue;
-                        propInfo.TrySetValue(_row, con);
+
+                        object con = colValue;
+                        if (colValue != null)
+                        {
+                            var type = TypeInfo.UnderlyingPropType[propInfo];
+                            if (type.IsEnum)
+                            {
+                                //Enums need to be handled slightly different.
+                                con = Enum.ToObject(type, colValue);
+                            }
+                            else
+                            {
+                                con = Convert.ChangeType(colValue, TypeInfo.UnderlyingPropType[propInfo]);
+                            }
+                        }
+
+                        propInfo.SetValue(_row, con);
                     }
                 }
                 catch (Exception e)
